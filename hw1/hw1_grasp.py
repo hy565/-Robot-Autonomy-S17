@@ -10,6 +10,7 @@ import math
 import numpy as np
 np.random.seed(0)
 import scipy
+import IPython
 
 # OpenRAVE
 import openravepy
@@ -37,7 +38,7 @@ ordatabase_path_thispack = curr_path + relative_ordatabase
 os.environ['OPENRAVE_DATABASE'] = ordatabase_path_thispack
 
 #get rid of warnings
-openravepy.RaveInitialize(True, openravepy.DebugLevel.Fatal)
+openravepy.RaveInitialize(True, openravepy.DebugLevel.Verbose)
 openravepy.misc.InitOpenRAVELogging()
 
 
@@ -48,11 +49,10 @@ class RoboHandler:
     self.problem_init()
 
     #order grasps based on your own scoring metric
-    self.order_grasps()
+    # self.order_grasps()
 
     #order grasps with noise
     self.order_grasps_noisy()
-
 
   # the usual initialization for openrave
   def openrave_init(self):
@@ -68,8 +68,8 @@ class RoboHandler:
   # problem specific initialization - load target and grasp module
   def problem_init(self):
     self.target_kinbody = self.env.ReadKinBodyURI('models/objects/champagne.iv')
-    #self.target_kinbody = self.env.ReadKinBodyURI('models/objects/winegoblet.iv')
-    #self.target_kinbody = self.env.ReadKinBodyURI('models/objects/black_plastic_mug.iv')
+    # self.target_kinbody = self.env.ReadKinBodyURI('models/objects/winegoblet.iv')
+    # self.target_kinbody = self.env.ReadKinBodyURI('models/objects/black_plastic_mug.iv')
 
     #change the location so it's not under the robot
     T = self.target_kinbody.GetTransform()
@@ -92,6 +92,8 @@ class RoboHandler:
   
   # order the grasps - call eval grasp on each, set the 'performance' index, and sort
   def order_grasps(self):
+    print 'Ordering Grasps without noise...',
+
     self.grasps_ordered = self.grasps.copy() #you should change the order of self.grasps_ordered
     for grasp in self.grasps_ordered:
       grasp[self.graspindices.get('performance')] = self.eval_grasp(grasp)
@@ -101,13 +103,36 @@ class RoboHandler:
     order = order[::-1]
     self.grasps_ordered = self.grasps_ordered[order]
 
+    print 'Done'
   
   # order the grasps - but instead of evaluating the grasp, evaluate random perturbations of the grasp 
   def order_grasps_noisy(self):
-    self.grasps_ordered_noisy = self.grasps_ordered.copy() #you should change the order of self.grasps_ordered_noisy
-    #TODO set the score with your evaluation function (over random samples) and sort
 
+    num_samples = 5
+    noisy_scores = np.zeros(num_samples+1)
 
+    print 'Ordering Grasps with noise...',
+
+    self.grasps_ordered_noisy = self.grasps.copy()
+    
+    for idx, grasp in enumerate(self.grasps_ordered_noisy):
+      noisy_scores[num_samples] = self.eval_grasp(grasp)
+      for i in range(num_samples):
+        grasp_new = grasp.copy()
+        grasp_new = self.sample_random_grasp(grasp) # Add perturbation
+        noisy_scores[i] = self.eval_grasp(grasp_new)
+        
+      
+
+      grasp[self.graspindices.get('performance')] = np.mean(noisy_scores)
+      print 'Grasp No. {0}: {1}, Mean: {2}'.format(idx, noisy_scores, grasp[self.graspindices.get('performance')])
+    
+    # sort!
+    order = np.argsort(self.grasps_ordered_noisy[:,self.graspindices.get('performance')[0]])
+    order = order[::-1]
+    self.grasps_ordered_noisy = self.grasps_ordered_noisy[order]
+
+    print 'Done'
   # function to evaluate grasps
   # returns a score, which is some metric of the grasp
   # higher score should be a better grasp
@@ -120,19 +145,30 @@ class RoboHandler:
         obj_position = self.gmodel.target.GetTransform()[0:3,3]
         # for each contact
         G = np.array([]) #the wrench matrix
+
         for c in contacts:
           pos = c[0:3] - obj_position
+          #what is dir? Guess it's force direction
           dir = -c[3:] #this is already a unit vector
-          
-          #TODO fill G
-        
-        #TODO use G to compute scrores as discussed in class
-        return 0.0 #change this
+          moment  = np.cross(pos, dir)
+          G = np.append(G, np.append(dir, moment))
 
-      except openravepy.planning_error,e:
+        G = np.reshape(G, (-1, 6))
+        #1. use minimal magnitude 
+        UMatrix, Singular, VMatrix = np.linalg.svd(G)
+        #Singular is a 1D array that contains the singular values for G, sorted in descending order.
+        quality = Singular[-1] #get sigma_min, the smallest singular value
+        #2. use the volume of the ellipsoid in the wrench space
+        #quality = np.linalg.det(np.dot(G, G.transpose()))
+
+        #TODO use G to compute scrores as discussed in class
+        return quality
+
+      # except openravepy.planning_error,e:
+      except:
         #you get here if there is a failure in planning
         #example: if the hand is already intersecting the object at the initial position/orientation
-        return  0.00 # TODO you may want to change this
+        return  -100.00 # way smaller than most of the scores
       
       #heres an interface in case you want to manipulate things more specifically
       #NOTE for this assignment, your solutions cannot make use of graspingnoise
@@ -164,30 +200,42 @@ class RoboHandler:
     grasp = grasp_in.copy()
 
     #sample random position
-    RAND_DIST_SIGMA = 0.01 #TODO you may want to change this
+    RAND_DIST_SIGMA = 0.008 #TODO you may want to change this
     pos_orig = grasp[self.graspindices['igrasppos']]
-    #TODO set a random position
-
+    
+    # pos_new = [pos_coord + np.random.normal(0, RAND_DIST_SIGMA) for pos_coord in pos_orig]
+    pos_new = pos_orig + np.random.normal(0, RAND_DIST_SIGMA, grasp[self.graspindices['igrasppos']].shape )
+    
+    grasp[self.graspindices['igrasppos']] = pos_new
 
     #sample random orientation
-    RAND_ANGLE_SIGMA = np.pi/24 #TODO you may want to change this
+    RAND_ANGLE_SIGMA = np.pi/30 #TODO you may want to change this
     dir_orig = grasp[self.graspindices['igraspdir']]
     roll_orig = grasp[self.graspindices['igrasproll']]
-    #TODO set the direction and roll to be random
+    
+    dir_new = dir_orig + np.random.normal(0, RAND_DIST_SIGMA, grasp[self.graspindices['igraspdir']].shape )
+    roll_new = roll_orig + np.random.normal(0, RAND_ANGLE_SIGMA)
+    # dir_new = [dir_coord + np.random.normal(0, RAND_DIST_SIGMA) for dir_coord in dir_orig]
+    # roll_new = roll_orig + np.random.normal(0, RAND_ANGLE_SIGMA)
+    
+    grasp[self.graspindices['igraspdir']] = dir_new
+    grasp[self.graspindices['igrasproll']] = roll_new
+
+    # print grasp_in
+    # print grasp
 
     return grasp
 
-
   #displays the grasp
-  def show_grasp(self, grasp, delay=1.5):
+  def show_grasp(self, grasp, delay=5):
     with openravepy.RobotStateSaver(self.gmodel.robot):
       with self.gmodel.GripperVisibility(self.gmodel.manip):
         time.sleep(0.1) # let viewer update?
         try:
           with self.env:
             contacts,finalconfig,mindist,volume = self.gmodel.testGrasp(grasp=grasp,translate=True,forceclosure=True)
-            #if mindist == 0:
-            #  print 'grasp is not in force closure!'
+            if mindist == 0:
+             print 'grasp is not in force closure!'
             contactgraph = self.gmodel.drawContacts(contacts) if len(contacts) > 0 else None
             self.gmodel.robot.GetController().Reset(0)
             self.gmodel.robot.SetDOFValues(finalconfig[0])
@@ -199,6 +247,7 @@ class RoboHandler:
 
 if __name__ == '__main__':
   robo = RoboHandler()
+  IPython.embed()
   #time.sleep(10000) #to keep the openrave window open
 
   
