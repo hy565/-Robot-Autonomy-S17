@@ -10,6 +10,7 @@ import math
 import numpy as np
 np.random.seed(0)
 import scipy
+import IPython
 
 # OpenRAVE
 import openravepy
@@ -48,11 +49,10 @@ class RoboHandler:
     self.problem_init()
 
     #order grasps based on your own scoring metric
-    self.order_grasps()
+    # self.order_grasps()
 
     #order grasps with noise
     self.order_grasps_noisy()
-
 
   # the usual initialization for openrave
   def openrave_init(self):
@@ -100,13 +100,22 @@ class RoboHandler:
     order = np.argsort(self.grasps_ordered[:,self.graspindices.get('performance')[0]])
     order = order[::-1]
     self.grasps_ordered = self.grasps_ordered[order]
-
   
   # order the grasps - but instead of evaluating the grasp, evaluate random perturbations of the grasp 
   def order_grasps_noisy(self):
-    self.grasps_ordered_noisy = self.grasps_ordered.copy() #you should change the order of self.grasps_ordered_noisy
-    #TODO set the score with your evaluation function (over random samples) and sort
-
+    self.grasps_ordered_noisy = self.grasps.copy()
+    
+    for grasp in self.grasps_ordered_noisy:
+      print grasp
+      grasp1 = self.sample_random_grasp(grasp) # Add perturbation
+      print grasp1 - grasp
+      grasp[self.graspindices.get('performance')] = self.eval_grasp(grasp)
+      # print grasp
+    
+    # sort!
+    order = np.argsort(self.grasps_ordered_noisy[:,self.graspindices.get('performance')[0]])
+    order = order[::-1]
+    self.grasps_ordered_noisy = self.grasps_ordered_noisy[order]
 
   # function to evaluate grasps
   # returns a score, which is some metric of the grasp
@@ -120,19 +129,28 @@ class RoboHandler:
         obj_position = self.gmodel.target.GetTransform()[0:3,3]
         # for each contact
         G = np.array([]) #the wrench matrix
+
         for c in contacts:
           pos = c[0:3] - obj_position
+          #what is dir? Guess it's force direction
           dir = -c[3:] #this is already a unit vector
-          
-          #TODO fill G
-        
+          moment  = np.cross(pos, dir)
+          G = np.append(G, np.append(dir, moment))
+
+        G = np.reshape(G, (-1, 6))
+        #1. use minimal magnitude 
+        UMatrix, Singular, VMatrix = np.linalg.svd(G)
+        quality = Singular[-1]
+        #2. use the volume of the ellipsoid in the wrench space
+        #quality = np.linalg.det(np.dot(G, G.transpose()))
+
         #TODO use G to compute scrores as discussed in class
-        return 0.0 #change this
+        return quality
 
       except openravepy.planning_error,e:
         #you get here if there is a failure in planning
         #example: if the hand is already intersecting the object at the initial position/orientation
-        return  0.00 # TODO you may want to change this
+        return  -100.00 # way smaller than most of the scores
       
       #heres an interface in case you want to manipulate things more specifically
       #NOTE for this assignment, your solutions cannot make use of graspingnoise
@@ -166,20 +184,26 @@ class RoboHandler:
     #sample random position
     RAND_DIST_SIGMA = 0.01 #TODO you may want to change this
     pos_orig = grasp[self.graspindices['igrasppos']]
-    #TODO set a random position
+    
+    pos_new = [pos_coord + np.random.normal(0, RAND_DIST_SIGMA) for pos_coord in pos_orig]
 
+    grasp[self.graspindices['igrasppos']] = pos_new
 
     #sample random orientation
     RAND_ANGLE_SIGMA = np.pi/24 #TODO you may want to change this
     dir_orig = grasp[self.graspindices['igraspdir']]
     roll_orig = grasp[self.graspindices['igrasproll']]
-    #TODO set the direction and roll to be random
+    
+    dir_new = [dir_coord + np.random.normal(0, RAND_DIST_SIGMA) for dir_coord in dir_orig]
+    roll_new = roll_orig + np.random.normal(0, RAND_ANGLE_SIGMA)
+    
+    grasp[self.graspindices['igraspdir']] = dir_new
+    grasp[self.graspindices['igrasproll']] = roll_new
 
     return grasp
 
-
   #displays the grasp
-  def show_grasp(self, grasp, delay=1.5):
+  def show_grasp(self, grasp, delay=5):
     with openravepy.RobotStateSaver(self.gmodel.robot):
       with self.gmodel.GripperVisibility(self.gmodel.manip):
         time.sleep(0.1) # let viewer update?
@@ -199,6 +223,7 @@ class RoboHandler:
 
 if __name__ == '__main__':
   robo = RoboHandler()
+  IPython.embed()
   #time.sleep(10000) #to keep the openrave window open
 
   
