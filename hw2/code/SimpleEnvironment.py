@@ -30,6 +30,7 @@ class SimpleEnvironment(object):
         #
         # TODO: Generate and return a random configuration
         #
+        config = numpy.random.uniform(lower_limits,upper_limits,2)
         
         return numpy.array(config)
 
@@ -38,7 +39,11 @@ class SimpleEnvironment(object):
         # TODO: Implement a function which computes the distance between
         # two configurations
         #
-        pass
+        distance = numpy.sqrt((start_config[0]-end_config[0])**2+(start_config[1]-end_config[1])**2)
+
+
+        #pass
+        return distance
 
     def Extend(self, start_config, end_config):
         
@@ -46,6 +51,9 @@ class SimpleEnvironment(object):
         # TODO: Implement a function which attempts to extend from 
         #   a start configuration to a goal configuration
         #
+        
+
+
         pass
 
     def ShortenPath(self, path, timeout=5.0):
@@ -80,6 +88,8 @@ class SimpleEnvironment(object):
                      bb.pos()[1] + bb.extents()[1],
                      bb.pos()[1] + bb.extents()[1],
                      bb.pos()[1] - bb.extents()[1]], 'r')
+            print bb.pos()
+            print bb.extents()
                     
                      
         pl.ion()
