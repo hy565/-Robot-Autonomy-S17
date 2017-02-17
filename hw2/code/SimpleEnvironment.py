@@ -30,7 +30,18 @@ class SimpleEnvironment(object):
         #
         # TODO: Generate and return a random configuration
         #
-        config = numpy.random.uniform(lower_limits,upper_limits,2)
+        
+
+        
+        limits = self.limits()
+        while(1):
+            config = numpy.random.uniform(lower_limits,upper_limits,2)
+
+            if not (config[0]>limits[1] and config[0]<limits[0] and config[1]>limits[3] and config[1]<limits[2]):
+                break;
+
+
+
         
         return numpy.array(config)
 
@@ -41,17 +52,44 @@ class SimpleEnvironment(object):
         #
         distance = numpy.sqrt((start_config[0]-end_config[0])**2+(start_config[1]-end_config[1])**2)
 
-
         #pass
         return distance
 
+
+    def limits(self):
+        for b in self.robot.GetEnv().GetBodies():
+            if b.GetName() == self.robot.GetName():
+                continue
+            bb = b.ComputeAABB()
+            x_upper_lim = bb.pos()[0] + bb.extents()[0]
+            x_lower_lim = bb.pos()[0] - bb.extents()[0]
+            y_upper_lim = bb.pos()[1] + bb.extents()[1]
+            y_lower_lim = bb.pos()[1] - bb.extents()[1]
+        return [x_upper_lim,x_lower_lim,y_upper_lim,y_lower_lim]
     def Extend(self, start_config, end_config):
         
         #
         # TODO: Implement a function which attempts to extend from 
         #   a start configuration to a goal configuration
         #
-        
+        # for b in self.robot.GetEnv().GetBodies():
+        #     if b.GetName() == self.robot.GetName():
+        #         continue
+        #     bb = b.ComputeAABB()
+        #         x_upper_lim = top bb.pose[0] + bb.extents()[0]
+        #         x_upper_lim = top bb.pose[0] - bb.extents()[0]
+        #         y_upper_lim = top bb.pose[1] + bb.extents()[1]
+        #         y_lower_lim = top bb.pose[1] - bb.extents()[1]
+
+        #     # Check if start/end config are in collision
+        #     if start_config[0] < x_lower_lim or start_config[1] > x_upper_lim or  start_config[1] < y_lower_lim or start_config[1] > y_upper_lim:
+
+        #         print "Error: Start/Goal in collision"
+        #         return None
+
+        #     else:
+
+        #         while 
 
 
         pass
