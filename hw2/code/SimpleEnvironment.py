@@ -73,7 +73,7 @@ class SimpleEnvironment(object):
             y_lower_lim = bb.pos()[1] - bb.extents()[1]
         return [x_upper_lim,x_lower_lim,y_upper_lim,y_lower_lim]
 
-    def Extend(self, start_config, end_config):
+    def Extend(self, start_config, end_config,epsilon):
         
         #
         # TODO: Implement a function which attempts to extend from 
@@ -90,12 +90,15 @@ class SimpleEnvironment(object):
             return None
 
         else:
-            # dx = numpy.random.uniform(start_config[0],end_config[0])
-            dx = 0.1
+            dx = (end_config[0]-start_config[0])*epsilon
+            dy = (end_config[1]-start_config[1])*epsilon
             ExConfig = [0]*2
             ExConfig[0] = start_config[0] + dx
-            ExConfig[1] = start_config[1] + (ExConfig[0]-start_config[0])*(end_config[1]-start_config[1])/(end_config[0]-start_config[0])
-            return ExConfig
+            ExConfig[1] = start_config[1] + dy
+            if self.CheckCollision(ExConfig):
+                return None
+            else:
+                return ExConfig
 
 
 
@@ -152,8 +155,6 @@ class SimpleEnvironment(object):
                      bb.pos()[1] + bb.extents()[1],
                      bb.pos()[1] + bb.extents()[1],
                      bb.pos()[1] - bb.extents()[1]], 'r')
-            print bb.pos()
-            print bb.extents()
                     
                      
         pl.ion()
