@@ -43,7 +43,7 @@ class SimpleEnvironment(object):
 
 
         
-        return numpy.array(config)
+        return config
 
     def ComputeDistance(self, start_config, end_config):
         #
@@ -72,27 +72,19 @@ class SimpleEnvironment(object):
         # TODO: Implement a function which attempts to extend from 
         #   a start configuration to a goal configuration
         #
-        # for b in self.robot.GetEnv().GetBodies():
-        #     if b.GetName() == self.robot.GetName():
-        #         continue
-        #     bb = b.ComputeAABB()
-        #         x_upper_lim = top bb.pose[0] + bb.extents()[0]
-        #         x_upper_lim = top bb.pose[0] - bb.extents()[0]
-        #         y_upper_lim = top bb.pose[1] + bb.extents()[1]
-        #         y_lower_lim = top bb.pose[1] - bb.extents()[1]
+        limits = self.limits()
+        if (start_config[0]>limits[1] and start_config[0]<limits[0] and start_config[1]>limits[3] and start_config[1]<limits[2]):
+            return None
 
-        #     # Check if start/end config are in collision
-        #     if start_config[0] < x_lower_lim or start_config[1] > x_upper_lim or  start_config[1] < y_lower_lim or start_config[1] > y_upper_lim:
-
-        #         print "Error: Start/Goal in collision"
-        #         return None
-
-        #     else:
-
-        #         while 
-
-
-        pass
+        elif (end_config[0]>limits[1] and end_config[0]<limits[0] and end_config[1]>limits[3] and end_config[1]<limits[2]):
+            return None
+        
+        else:
+            dx = numpy.random.uniform(start_config[0],end_config[0])
+            ExConfig = [0]*2
+            ExConfig[0] = start_config[0] + dx
+            ExConfig[1] = start_config[1] + (ExConfig[0]-start_config[0])*(end_config[1]-start_config[1])/(end_config[0]-start_config[0])
+            return ExConfig
 
     def ShortenPath(self, path, timeout=5.0):
         
