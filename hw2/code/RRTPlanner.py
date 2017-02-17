@@ -19,7 +19,26 @@ class RRTPlanner(object):
         #  of dimension k x n where k is the number of waypoints
         #  and n is the dimension of the robots configuration space
         
+
+
         plan.append(start_config)
+
+        p= self.planning_env.Extend(start_config, goal_config)
+
+        while (p is not goal_config):
+
+            plan.append(p)
+
+            random_pt = self.planning_env.GenerateRandomConfiguration()
+
+            temp = self.planning_env.Extend(p, random_pt)
+
+            self.planning_env.PlotEdge(p, temp)
+            p = self.planning_env.Extend(temp, goal_config)
+
+            self.planning_env.PlotEdge(temp, p)
+
+
         plan.append(goal_config)
         
         return plan
