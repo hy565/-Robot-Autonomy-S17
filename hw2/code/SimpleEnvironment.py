@@ -55,7 +55,7 @@ class SimpleEnvironment(object):
                 T[1][3] = config[1]
                 self.robot.SetTransform(T)
 
-            if self.robot.GetEnv().CheckInvalidConfig(self.robot.GetEnv().GetRobots()[0]):
+            if self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetRobots()[0]):
                 self.robot.SetTransform(orig_T)
                 collision = 1
             else:
