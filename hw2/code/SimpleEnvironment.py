@@ -24,7 +24,7 @@ class SimpleEnvironment(object):
         self.goal_config = goal_config
         self.p = p
 
-    def CheckCollision(self, config):
+    def CheckInvalidConfig(self, config):
         limits = self.limits()
         if (config[0]>limits[1] and config[0]<limits[0] and config[1]>limits[3] and config[1]<limits[2]):
             return True
@@ -46,7 +46,23 @@ class SimpleEnvironment(object):
         while(collision):
 
             config = numpy.random.uniform(lower_limits,upper_limits,2)
-            collision = self.CheckCollision(config)
+            # collision = self.CheckInvalidConfig(config)
+
+            with self.robot.GetEnv():
+                T = self.robot.GetTransform()
+                orig_T = T
+                T[0][3] = config[0]
+                T[1][3] = config[1]
+                self.robot.SetTransform(T)
+
+            if self.robot.GetEnv().CheckInvalidConfig(self.robot.GetEnv().GetRobots()[0]):
+                self.robot.SetTransform(orig_T)
+                collision = 1
+            else:
+                self.robot.SetTransform(orig_T)
+                collision = 0
+
+
 
         self.PlotPoint(config)        
         return config
@@ -86,7 +102,7 @@ class SimpleEnvironment(object):
         # elif (end_config[0]>limits[1] and end_config[0]<limits[0] and end_config[1]>limits[3] and end_config[1]<limits[2]):
         #     return None
         
-        if self.CheckCollision(start_config) or self.CheckCollision(end_config):
+        if self.CheckInvalidConfig(start_config) or self.CheckInvalidConfig(end_config):
             return None
 
         else:
@@ -95,7 +111,7 @@ class SimpleEnvironment(object):
             ExConfig = [0]*2
             ExConfig[0] = start_config[0] + dx
             ExConfig[1] = start_config[1] + dy
-            if self.CheckCollision(ExConfig):
+            if self.CheckInvalidConfig(ExConfig):
                 return None
             else:
                 
@@ -110,7 +126,7 @@ class SimpleEnvironment(object):
                     self.robot.SetTransform(orig_T)
                     return None
                 else:
-
+                    self.robot.SetTransform(orig_T)
                     return ExConfig
 
 
@@ -128,7 +144,7 @@ class SimpleEnvironment(object):
             # config = start_config
             # for i in numpy.arange(0,dist,sample):
             #     config = numpy.array([config[0] + i, (config[0]+i)*slope + intercept])
-            #     if (self.CheckCollision(config)):
+            #     if (self.CheckInvalidConfig(config)):
             #         return prev_config
             #         # break
             #     prev_config = config
