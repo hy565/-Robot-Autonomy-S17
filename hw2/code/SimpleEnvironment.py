@@ -64,7 +64,7 @@ class SimpleEnvironment(object):
 
 
 
-        self.PlotPoint(config)        
+        # self.PlotPoint(config)        
         return config
 
     def ComputeDistance(self, start_config, end_config):
@@ -89,7 +89,7 @@ class SimpleEnvironment(object):
             y_lower_lim = bb.pos()[1] - bb.extents()[1]
         return [x_upper_lim,x_lower_lim,y_upper_lim,y_lower_lim]
 
-    def Extend(self, start_config, end_config,epsilon):
+    def Extend(self, start_config, end_config):
         
         #
         # TODO: Implement a function which attempts to extend from 
@@ -102,25 +102,27 @@ class SimpleEnvironment(object):
         # elif (end_config[0]>limits[1] and end_config[0]<limits[0] and end_config[1]>limits[3] and end_config[1]<limits[2]):
         #     return None
         
-        if self.CheckInvalidConfig(start_config) or self.CheckInvalidConfig(end_config):
-            return None
+        delta = 0.25
 
+        # if self.CheckInvalidConfig(start_config) or self.CheckInvalidConfig(end_config):
+        #     return None
+
+        # else:
+        dx = (end_config[0]-start_config[0])*delta
+        dy = (end_config[1]-start_config[1])*delta
+        ExConfig = [0]*2
+        ExConfig[0] = start_config[0] + dx
+        ExConfig[1] = start_config[1] + dy
+        if self.CheckInvalidConfig(ExConfig):
+            return None
         else:
-            dx = (end_config[0]-start_config[0])*epsilon
-            dy = (end_config[1]-start_config[1])*epsilon
-            ExConfig = [0]*2
-            ExConfig[0] = start_config[0] + dx
-            ExConfig[1] = start_config[1] + dy
-            if self.CheckInvalidConfig(ExConfig):
-                return None
-            else:
-                
-                with self.robot.GetEnv():
-                    T = self.robot.GetTransform()
-                    orig_T = T
-                    T[0][3] = ExConfig[0]
-                    T[1][3] = ExConfig[1]
-                    self.robot.SetTransform(T)
+            
+            with self.robot.GetEnv():
+                T = self.robot.GetTransform()
+                orig_T = T
+                T[0][3] = ExConfig[0]
+                T[1][3] = ExConfig[1]
+                self.robot.SetTransform(T)
 
                 if self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetRobots()[0]):
                     self.robot.SetTransform(orig_T)
@@ -131,26 +133,6 @@ class SimpleEnvironment(object):
 
 
 
-
-######            
-            # sample_num = 100
-
-            # slope = (start_config[1] - end_config[1])/(start_config[0] - end_config[0])
-            # intercept = (end_config[1]*(end_config[0]-start_config[0]))/(end_config[0]*(end_config[1]-start_config[1]))
-            
-            # dist =  self.ComputeDistance(start_config,end_config)
-            # sample = dist/sample_num
-
-            # config = start_config
-            # for i in numpy.arange(0,dist,sample):
-            #     config = numpy.array([config[0] + i, (config[0]+i)*slope + intercept])
-            #     if (self.CheckInvalidConfig(config)):
-            #         return prev_config
-            #         # break
-            #     prev_config = config
-            # return config
-
-############
 
 
     def ShortenPath(self, path, timeout=5.0):

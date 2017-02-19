@@ -1,4 +1,5 @@
 import numpy
+import time
 from RRTTree import RRTTree
 
 class RRTPlanner(object):
@@ -9,19 +10,19 @@ class RRTPlanner(object):
     
     #Detecting a if a line is intersect with the obstacle. If yes, return the previous coordinate
     #If not return the end point. 
-    def LineDetect(self,spt,ept,epsilon):
-        ExtPoint = []
-        for i in range(int(1.0/epsilon-2.0)):
-            print i 
-            print self.planning_env.Extend(spt,ept,epsilon*(i+1))
-            ExtPoint.append(self.planning_env.Extend(spt,ept,epsilon*(i+1)))
-            if ExtPoint[0] == None:
-                return spt
-            elif ExtPoint[i] == None:
-                return ExtPoint[i-1]
-        return ept
+    # def LineDetect(self,spt,ept,epsilon):
+    #     ExtPoint = []
+    #     for i in range(int(1.0/epsilon-2.0)):
+    #         print i 
+    #         print self.planning_env.Extend(spt,ept,epsilon*(i+1))
+    #         ExtPoint.append(self.planning_env.Extend(spt,ept,epsilon*(i+1)))
+    #         if ExtPoint[0] == None:
+    #             return spt
+    #         elif ExtPoint[i] == None:
+    #             return ExtPoint[i-1]
+    #     return ept
 
-    def Plan(self, start_config, goal_config, epsilon = 0.01):
+    def Plan(self, start_config, goal_config, epsilon = 0.3):
         
         tree = RRTTree(self.planning_env, start_config)
         plan = []
@@ -34,49 +35,74 @@ class RRTPlanner(object):
         
         plan.append(start_config)
 
-        ept = goal_config
-        spt = self.LineDetect(start_config,ept,epsilon)
-        self.planning_env.PlotEdge(start_config,spt)
-
-        while (self.LineDetect(spt,goal_config,epsilon) is not goal_config):
 
 
-            NN = [] # generate a number of random configs, subject to certain constraints
+        sid = tree.GetRootId()
+
+        m = start_config
 
 
-            while len(NN) < 11: 
-                randconf = self.planning_env.GenerateRandomConfiguration()
-                # if self.planning_env.ComputeDistance(randconf, goal_config) < self.planning_env.ComputeDistance(spt, goal_config):
-                # if randconf[0] > spt[0]:
-                # if self.planning_env.ComputeDistance(randconf, goal_config) < 3 :
-                NN.append(randconf)  
+        while (self.planning_env.ComputeDistance(m, goal_config) > epsilon):
 
 
-            # get the distance of each config, and keep only the nearest one 
+            # NN = [] # generate a number of random configs, subject to certain constraints
+            # while len(NN) < 11:
+            #     rand = self.planning_env.GenerateRandomConfiguration()
+            #     # if self.planning_env.ComputeDistance(rand, goal_config) < 3:
+            #     # if self.planning_env.ComputeDistance(randconf, goal_config) < 3 :
+            #     NN.append(rand)  
+            # # get the distance of each config, and keep only the nearest one 
             
-            dNN = numpy.array([self.planning_env.ComputeDistance(j, spt) for j in NN])
+            # dNN = numpy.array([self.planning_env.ComputeDistance(j, m) for j in NN])
 
-            randconfig = NN[numpy.argmin(dNN)]
+            # randconf = NN[numpy.argmin(dNN)]
 
-            ept = self.LineDetect(spt,randconfig,epsilon)
+            p = numpy.random.uniform(0,1)
+            # print p
+            goal_sampling_prob = 0.7
 
-            # ept = self.LineDetect(spt,self.planning_env.GenerateRandomConfiguration(),epsilon)
-            self.planning_env.PlotEdge(spt,ept)
-            spt = ept
-            plan.append(spt)
-        self.planning_env.PlotEdge(ept,goal_config)
+            if p > goal_sampling_prob:
 
-        # ept = goal_config
-        # spt = start_config
-        # self.planning_env.PlotEdge(start_config,self.LineDetect(start_config,goal_config,epsilon))
+                randconf = self.planning_env.GenerateRandomConfiguration()
 
-        # while (self.LineDetect(spt,goal_config,epsilon) is not goal_config):
-        #     spt = self.LineDetect(spt,ept,epsilon)
-        #     ept = self.planning_env.GenerateRandomConfiguration()
-        #     self.planning_env.PlotEdge(spt,ept)
-        #     plan.append(spt)
-        # self.planning_env.PlotEdge(ept,goal_config)
+            else:
+                randconf = goal_config
+
+            self.planning_env.PlotPoint(randconf)
+            v_id, v = tree.GetNearestVertex(randconf)
+            
+            k = 0
+            while (k < 10):
+                m_prev = m
+                m = self.planning_env.Extend(v, randconf)
+                if m == None:
+                    m = m_prev
+                    print "broke"
+                    break
+                
+                elif (self.planning_env.ComputeDistance(m, randconf) < epsilon):
+                    break
+
+                else:
+                    
+                    # print k
+                    k += 1
+                    
+            v_id, v = tree.GetNearestVertex(m)
+
+            m_id = tree.AddVertex(m)
+            tree.AddEdge(v_id, m_id)
+            self.planning_env.PlotEdge(v, m)
+            # time.sleep(0.5)
+            # plan.append(m)
+
+        self.planning_env.PlotEdge(m, goal_config)
+
+
         
+        
+
+
         plan.append(goal_config)
         
         print plan
