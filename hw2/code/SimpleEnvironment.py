@@ -48,7 +48,7 @@ class SimpleEnvironment(object):
             config = numpy.random.uniform(lower_limits,upper_limits,2)
             collision = self.CheckCollision(config)
 
-        
+        self.PlotPoint(config)        
         return config
 
     def ComputeDistance(self, start_config, end_config):
@@ -98,7 +98,21 @@ class SimpleEnvironment(object):
             if self.CheckCollision(ExConfig):
                 return None
             else:
-                return ExConfig
+                
+                with self.robot.GetEnv():
+                    T = self.robot.GetTransform()
+                    orig_T = T
+                    T[0][3] = ExConfig[0]
+                    T[1][3] = ExConfig[1]
+                    self.robot.SetTransform(T)
+
+                if self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetRobots()[0]):
+                    self.robot.SetTransform(orig_T)
+                    return None
+                else:
+
+                    return ExConfig
+
 
 
 
@@ -166,3 +180,6 @@ class SimpleEnvironment(object):
                 'k.-', linewidth=2.5)
         pl.draw()
 
+    def PlotPoint(self, config):
+        pl.plot(config[0], config[1], 'bx')
+        pl.show()

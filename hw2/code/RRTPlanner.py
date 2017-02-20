@@ -40,7 +40,27 @@ class RRTPlanner(object):
 
         while (self.LineDetect(spt,goal_config,epsilon) is not goal_config):
 
-            ept = self.LineDetect(spt,self.planning_env.GenerateRandomConfiguration(),epsilon)
+
+            NN = [] # generate a number of random configs, subject to certain constraints
+
+
+            while len(NN) < 11: 
+                randconf = self.planning_env.GenerateRandomConfiguration()
+                # if self.planning_env.ComputeDistance(randconf, goal_config) < self.planning_env.ComputeDistance(spt, goal_config):
+                # if randconf[0] > spt[0]:
+                # if self.planning_env.ComputeDistance(randconf, goal_config) < 3 :
+                NN.append(randconf)  
+
+
+            # get the distance of each config, and keep only the nearest one 
+            
+            dNN = numpy.array([self.planning_env.ComputeDistance(j, spt) for j in NN])
+
+            randconfig = NN[numpy.argmin(dNN)]
+
+            ept = self.LineDetect(spt,randconfig,epsilon)
+
+            # ept = self.LineDetect(spt,self.planning_env.GenerateRandomConfiguration(),epsilon)
             self.planning_env.PlotEdge(spt,ept)
             spt = ept
             plan.append(spt)
@@ -59,4 +79,5 @@ class RRTPlanner(object):
         
         plan.append(goal_config)
         
+        print plan
         return plan
