@@ -35,8 +35,8 @@ class RRTPlanner(object):
 
         start = time.time()
 
-        epsilon = 0.1
-
+        # epsilon = 0.1
+        epsilon = 0.5
         
 
         while (time.time()-start < timeout):
@@ -57,7 +57,8 @@ class RRTPlanner(object):
             while (time.time()-start < timeout and not connected):
                 # print time.time()-start
                 s_prev = s
-                s = self.planning_env.Extend(s, second, delta=0.1)
+                # s = self.planning_env.Extend(s, second, delta=0.1)
+                s = self.planning_env.Extend(numpy.array(s), numpy.array(second))
                 if s == None:
                     break
 
@@ -110,7 +111,7 @@ class RRTPlanner(object):
 
         return new_path
 
-    def Plan(self, start_config, goal_config, epsilon = 0.3):
+    def Plan(self, start_config, goal_config, epsilon = 3):
         
         self.tree = RRTTree(self.planning_env, start_config)
         plan = []
@@ -144,7 +145,7 @@ class RRTPlanner(object):
             p = numpy.random.uniform(0,1)
             # print p
             # goal_sampling_prob = self.planning_env.p
-            goal_sampling_prob = 0.05
+            goal_sampling_prob = 0.25
 
             if p > goal_sampling_prob:
 
@@ -153,37 +154,39 @@ class RRTPlanner(object):
             else:
                 randconf = goal_config
 
-            self.planning_env.PlotPoint(randconf)
+            # self.planning_env.PlotPoint(randconf)
             v_id, v = self.tree.GetNearestVertex(randconf)
             
-            k = 0
-            while (k < 10):
-                m_prev = m
-                m = self.planning_env.Extend(v, randconf)
-                if m == None:
-                    m = m_prev
-                    # print "broke"
-                    break
+            # k = 0
+            # while (k < 10):
+            #     m_prev = m
+            #     m = self.planning_env.Extend(v, randconf)
+            #     if m == None:
+            #         m = m_prev
+            #         # print "broke"
+            #         break
                 
-                elif (self.planning_env.ComputeDistance(m, randconf) < epsilon):
-                    break
+            #     elif (self.planning_env.ComputeDistance(m, randconf) < epsilon):
+            #         break
 
-                else:
+            #     else:
                     
-                    # print k
-                    k += 1
+            #         # print k
+            #         k += 1
                     
+            m = self.planning_env.Extend(v, randconf)
+
             v_id, v = self.tree.GetNearestVertex(m)
 
             m_id = self.tree.AddVertex(numpy.array(m))
             self.tree.AddEdge(v_id, m_id)
-            self.planning_env.PlotEdge(v, m)
+            # self.planning_env.PlotEdge(v, m)
             # time.sleep(0.5)
             # plan.append(m)
 
         goal_id = self.tree.AddVertex(goal_config)
         self.tree.AddEdge(m_id, goal_id)
-        self.planning_env.PlotEdge(m, goal_config)
+        # self.planning_env.PlotEdge(m, goal_config)
 
 
         currVertex = goal_id
@@ -197,15 +200,19 @@ class RRTPlanner(object):
         # for i in range(len(plan)-1):
             # self.planning_env.PlotEdgePlan(plan[i],plan[i+1])
 
-        self.planning_env.ShowPlan(plan)
+        # self.planning_env.ShowPlan(plan)
 
         plan_star = self.ShortenPath(plan)
 
-        self.planning_env.ShowPlan(plan_star, 'g')
+        # self.planning_env.ShowPlan(plan_star, 'g')
 
 
         # plan.append(goal_config)
-        self.path = plan_star
+        self.path = plan
+        self.path_star = plan_star
+
         print self.tree.edges
         print plan_star
+
+        print len(plan), len(plan_star)
         return plan_star

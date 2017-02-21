@@ -19,6 +19,7 @@ class RRTConnectPlanner(object):
             for r_vid in range(len(rtree_v)):
                 # print "rvid = ",r_vid
                 d = self.planning_env.ComputeDistance(ftree_v[f_vid],rtree_v[r_vid])
+                print d
                 if d < epsilon:
                     return 1,f_vid,r_vid
 
@@ -27,7 +28,7 @@ class RRTConnectPlanner(object):
 
 
 
-    def Plan(self, start_config, goal_config, epsilon = 0.2):
+    def Plan(self, start_config, goal_config, epsilon = 1):
         
         ftree = RRTTree(self.planning_env, start_config)
         rtree = RRTTree(self.planning_env, goal_config)
@@ -57,42 +58,42 @@ class RRTConnectPlanner(object):
 
             qhat = self.planning_env.GenerateRandomConfiguration()
 
-            self.planning_env.PlotPoint(qhat)
+            # self.planning_env.PlotPoint(qhat)
 
             fv_id, fv = ftree.GetNearestVertex(qhat)
             rv_id, rv = rtree.GetNearestVertex(qhat)
 
-            #Extend for ftree
-            for i in range(k):
-                mf_prev = mf
-                mf = self.planning_env.Extend(fv,qhat)
+            # #Extend for ftree
+            # for i in range(k):
+            #     mf_prev = mf
+            #     mf = self.planning_env.Extend(fv,qhat)
 
-                if mf == None:
-                    mf = mf_prev
-                    print "broke"
-                    break
-                #elif()
-
+            #     if mf == None:
+            #         mf = mf_prev
+            #         print "broke"
+            #         break
+            #     #elif()
+            mf = self.planning_env.Extend(fv,qhat)
             fv_id, fv = ftree.GetNearestVertex(mf)
             mf_id = ftree.AddVertex(mf)
             ftree.AddEdge(fv_id,mf_id)
-            self.planning_env.PlotEdge(fv,mf)
+            # self.planning_env.PlotEdge(fv,mf)
 
 
-            #Extend for rtree
-            for j in range(k):
-                mr_prev = mr
-                mr = self.planning_env.Extend(rv,qhat)
+            # #Extend for rtree
+            # for j in range(k):
+            #     mr_prev = mr
+            #     mr = self.planning_env.Extend(rv,qhat)
 
-                if mr == None:
-                    mr = mr_prev
-                    print "broke"
-                    break
-
+            #     if mr == None:
+            #         mr = mr_prev
+            #         print "broke"
+            #         break
+            mr = self.planning_env.Extend(rv,qhat)
             rv_id, rv = rtree.GetNearestVertex(mr)
             mr_id = rtree.AddVertex(mr)
             rtree.AddEdge(rv_id,mr_id)
-            self.planning_env.PlotEdge(rv,mr)
+            # self.planning_env.PlotEdge(rv,mr)
 
             CheckEndGame,fcnct,rcnct = self.Endgame(ftree.vertices,rtree.vertices,epsilon)
             if CheckEndGame == 1:
@@ -101,7 +102,7 @@ class RRTConnectPlanner(object):
 
         
 
-        self.planning_env.PlotEdge(ftree.vertices[fcnct], rtree.vertices[rcnct])
+        # self.planning_env.PlotEdge(ftree.vertices[fcnct], rtree.vertices[rcnct])
 
         #Generate Path
 
@@ -129,7 +130,7 @@ class RRTConnectPlanner(object):
 
 
         #Plot the path
-        self.planning_env.ShowPlan(plan)
+        # self.planning_env.ShowPlan(plan)
 
         #plan_star = self.ShortenPath(plan)
 
@@ -138,5 +139,6 @@ class RRTConnectPlanner(object):
 
         #plan.append(goal_config)
         
+        self.path = plan        
         print plan
         return plan
