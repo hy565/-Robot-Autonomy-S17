@@ -24,7 +24,7 @@ class RRTPlanner(object):
 
     def Plan(self, start_config, goal_config, epsilon = 0.3):
         
-        tree = RRTTree(self.planning_env, start_config)
+        self.tree = RRTTree(self.planning_env, start_config)
         plan = []
         if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
             self.planning_env.InitializePlot(goal_config)
@@ -33,11 +33,7 @@ class RRTPlanner(object):
         #  of dimension k x n where k is the number of waypoints
         #  and n is the dimension of the robots configuration space
         
-        plan.append(start_config)
-
-
-
-        sid = tree.GetRootId()
+        # plan.append(start_config)
 
         m = start_config
 
@@ -59,7 +55,7 @@ class RRTPlanner(object):
 
             p = numpy.random.uniform(0,1)
             # print p
-            goal_sampling_prob = 0.7
+            goal_sampling_prob = 0.5
 
             if p > goal_sampling_prob:
 
@@ -69,7 +65,7 @@ class RRTPlanner(object):
                 randconf = goal_config
 
             self.planning_env.PlotPoint(randconf)
-            v_id, v = tree.GetNearestVertex(randconf)
+            v_id, v = self.tree.GetNearestVertex(randconf)
             
             k = 0
             while (k < 10):
@@ -77,7 +73,7 @@ class RRTPlanner(object):
                 m = self.planning_env.Extend(v, randconf)
                 if m == None:
                     m = m_prev
-                    print "broke"
+                    # print "broke"
                     break
                 
                 elif (self.planning_env.ComputeDistance(m, randconf) < epsilon):
@@ -88,22 +84,32 @@ class RRTPlanner(object):
                     # print k
                     k += 1
                     
-            v_id, v = tree.GetNearestVertex(m)
+            v_id, v = self.tree.GetNearestVertex(m)
 
-            m_id = tree.AddVertex(m)
-            tree.AddEdge(v_id, m_id)
+            m_id = self.tree.AddVertex(numpy.array(m))
+            self.tree.AddEdge(v_id, m_id)
             self.planning_env.PlotEdge(v, m)
             # time.sleep(0.5)
             # plan.append(m)
 
+        goal_id = self.tree.AddVertex(goal_config)
+        self.tree.AddEdge(m_id, goal_id)
         self.planning_env.PlotEdge(m, goal_config)
 
 
-        
-        
+        currVertex = goal_id
+        while (numpy.all(self.tree.vertices[currVertex] != start_config)):
+            
+            plan.insert(0, self.tree.vertices[currVertex])
+            currVertex = self.tree.edges[currVertex]
 
-
-        plan.append(goal_config)
+        plan.insert(0, start_config)
         
+        for i in range(len(plan)-1):
+            self.planning_env.PlotEdgePlan(plan[i],plan[i+1])
+
+        # plan.append(goal_config)
+        self.path = plan
+        print self.tree.edges
         print plan
         return plan

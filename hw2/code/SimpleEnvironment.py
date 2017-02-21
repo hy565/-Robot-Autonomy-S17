@@ -32,7 +32,7 @@ class SimpleEnvironment(object):
             return False
         
     def GenerateRandomConfiguration(self):
-        config = [0] * 2;
+        # config = [0] * 2;
         lower_limits, upper_limits = self.boundary_limits
         #
         # TODO: Generate and return a random configuration
@@ -45,7 +45,7 @@ class SimpleEnvironment(object):
 
         while(collision):
 
-            config = numpy.random.uniform(lower_limits,upper_limits,2)
+            config = numpy.array(numpy.random.uniform(lower_limits,upper_limits,2))
             # collision = self.CheckInvalidConfig(config)
 
             with self.robot.GetEnv():
@@ -181,3 +181,9 @@ class SimpleEnvironment(object):
     def PlotPoint(self, config):
         pl.plot(config[0], config[1], 'bx')
         pl.show()
+
+    def PlotEdgePlan(self, sconfig, econfig):
+        pl.plot([sconfig[0], econfig[0]],
+                [sconfig[1], econfig[1]],
+                'r.-', linewidth=3.0)
+        pl.draw()
