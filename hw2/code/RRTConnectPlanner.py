@@ -7,17 +7,6 @@ class RRTConnectPlanner(object):
         self.planning_env = planning_env
         self.visualize = visualize
 
-    # def LineDetect(self,spt,ept,epsilon):
-    #     ExtPoint = []
-    #     for i in range(int(1.0/epsilon-2.0)):
-    #         print i 
-    #         print self.planning_env.Extend(spt,ept,epsilon*(i+1))
-    #         ExtPoint.append(self.planning_env.Extend(spt,ept,epsilon*(i+1)))
-    #         if ExtPoint[0] == None:
-    #             return spt
-    #         elif ExtPoint[i] == None:
-    #             return ExtPoint[i-1]
-    #     return ept
         
     def Endgame(self, ftree_v,rtree_v,epsilon):
 
@@ -56,10 +45,10 @@ class RRTConnectPlanner(object):
         #  of dimension k x n where k is the number of waypoints
         #  and n is the dimension of the robots configuration space
 
-        plan.append(start_config)
+        #plan.append(start_config)
 
         ftree.AddVertex(start_config)
-        rtree.AddVertex(goal_config)
+        goal_id = rtree.AddVertex(goal_config)
 
         mf = start_config
         mr = goal_config
@@ -68,8 +57,6 @@ class RRTConnectPlanner(object):
 
             qhat = self.planning_env.GenerateRandomConfiguration()
 
-            ftree.GetNearestVertex(qhat)
-            rtree.GetNearestVertex(qhat)
             self.planning_env.PlotPoint(qhat)
 
             fv_id, fv = ftree.GetNearestVertex(qhat)
@@ -108,14 +95,48 @@ class RRTConnectPlanner(object):
             self.planning_env.PlotEdge(rv,mr)
 
             CheckEndGame,fcnct,rcnct = self.Endgame(ftree.vertices,rtree.vertices,epsilon)
+            if CheckEndGame == 1:
+                fcnct_id = rtree.AddVertex(ftree.vertices[fcnct])
+                rtree.AddEdge(rcnct,fcnct_id)
 
         
 
         self.planning_env.PlotEdge(ftree.vertices[fcnct], rtree.vertices[rcnct])
 
+        #Generate Path
 
+        
+
+        #Grow a path from f connect point to start point
+        currVertex = fcnct
+        while (numpy.all(ftree.vertices[currVertex] != start_config)):
+            
+            plan.insert(0, ftree.vertices[currVertex])
+            currVertex = ftree.edges[currVertex]
+
+        plan.insert(0, start_config)
+
+
+        #Grow a path from the common to the goal
+        currVertex = fcnct_id
+        while (numpy.all(rtree.vertices[currVertex] != goal_config)):
+        
+            plan.append(rtree.vertices[currVertex])
+            currVertex = rtree.edges[currVertex]
 
         plan.append(goal_config)
+
+
+
+        #Plot the path
+        self.planning_env.ShowPlan(plan)
+
+        #plan_star = self.ShortenPath(plan)
+
+        #self.planning_env.ShowPlan(plan_star, 'g')
+
+
+        #plan.append(goal_config)
         
         print plan
         return plan
