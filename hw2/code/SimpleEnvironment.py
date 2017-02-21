@@ -89,7 +89,7 @@ class SimpleEnvironment(object):
             y_lower_lim = bb.pos()[1] - bb.extents()[1]
         return [x_upper_lim,x_lower_lim,y_upper_lim,y_lower_lim]
 
-    def Extend(self, start_config, end_config):
+    def Extend(self, start_config, end_config, delta=0.25):
         
         #
         # TODO: Implement a function which attempts to extend from 
@@ -102,7 +102,7 @@ class SimpleEnvironment(object):
         # elif (end_config[0]>limits[1] and end_config[0]<limits[0] and end_config[1]>limits[3] and end_config[1]<limits[2]):
         #     return None
         
-        delta = 0.25
+        # delta = 0.1
 
         # if self.CheckInvalidConfig(start_config) or self.CheckInvalidConfig(end_config):
         #     return None
@@ -182,8 +182,15 @@ class SimpleEnvironment(object):
         pl.plot(config[0], config[1], 'bx')
         pl.show()
 
-    def PlotEdgePlan(self, sconfig, econfig):
+    def PlotEdgePlan(self, sconfig, econfig, color='r'):
+
         pl.plot([sconfig[0], econfig[0]],
                 [sconfig[1], econfig[1]],
-                'r.-', linewidth=3.0)
+                color+'.-', linewidth=3.0)
         pl.draw()
+
+
+    def ShowPlan(self, plan, color='r'):
+
+        for i in range(len(plan)-1):
+            self.PlotEdgePlan(plan[i],plan[i+1], color)
