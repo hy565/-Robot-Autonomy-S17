@@ -31,30 +31,46 @@ class HerbEnvironment(object):
         
 
     def GenerateRandomConfiguration(self):
+	bodies =  self.robot.GetEnv().GetBodies()
         config = [0] * len(self.robot.GetActiveDOFIndices())
-
-        #
-        # TODO: Generate and return a random configuration
-        #
+	lower_limits, upper_limits = self.robot.GetActiveDOFLimits()
+	collision = True
+	while(collision):	
+		config = numpy.array(numpy.random.uniform(lower_limits,upper_limits,len(self.robot.GetActiveDOFIndices())))
+		self.robot.SetActiveDOFValues(config)
+		collision = (self.robot.CheckSelfCollision() or self.robot.GetEnv().CheckCollision(bodies[1],bodies[0]))
         return numpy.array(config)
 
 
     
     def ComputeDistance(self, start_config, end_config):
         
-        #
-        # TODO: Implement a function which computes the distance between
-        # two configurations
-        #
+	return numpy.sum(numpy.square(start_config - end_config))
         pass
 
 
     def Extend(self, start_config, end_config):
-        
-        #
-        # TODO: Implement a function which attempts to extend from 
-        #   a start configuration to a goal configuration
-        #
+    	
+	bodies =  self.robot.GetEnv().GetBodies()
+	collision = (self.robot.CheckSelfCollision() or self.robot.GetEnv().CheckCollision(bodies[1],bodies[0]))
+	if(collision):
+	    return None
+	config = [0]*len(start_config)
+	for j in range(len(start_config)):
+	    config[j] = start_config[j]		
+	sampling_rate = 100;
+	diff = end_config - start_config
+    	diff /= sampling_rate
+	i = 30
+	while(not collision and i>0):
+	    config += diff
+	    i -=1
+            self.robot.SetActiveDOFValues(config) 
+            collision = (self.robot.CheckSelfCollision() or self.robot.GetEnv().CheckCollision(bodies[1],bodies[0])) 
+        if(collision):
+	    config -= diff
+            self.robot.SetActiveDOFValues(config)
+	return config	
         pass
         
     def ShortenPath(self, path, timeout=5.0):
