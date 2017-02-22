@@ -89,47 +89,68 @@ class SimpleEnvironment(object):
             y_lower_lim = bb.pos()[1] - bb.extents()[1]
         return [x_upper_lim,x_lower_lim,y_upper_lim,y_lower_lim]
 
-    def Extend(self, start_config, end_config, delta=0.25):
+    def Extend(self, start_config, end_config, delta=50):
         
         #
         # TODO: Implement a function which attempts to extend from 
         #   a start configuration to a goal configuration
         #
-        # limits = self.limits()
-        # if (start_config[0]>limits[1] and start_config[0]<limits[0] and start_config[1]>limits[3] and start_config[1]<limits[2]):
-        #     return None
-
-        # elif (end_config[0]>limits[1] and end_config[0]<limits[0] and end_config[1]>limits[3] and end_config[1]<limits[2]):
-        #     return None
-        
-        # delta = 0.1
-
-        # if self.CheckInvalidConfig(start_config) or self.CheckInvalidConfig(end_config):
-        #     return None
-
-        # else:
-        dx = (end_config[0]-start_config[0])*delta
-        dy = (end_config[1]-start_config[1])*delta
-        ExConfig = [0]*2
-        ExConfig[0] = start_config[0] + dx
-        ExConfig[1] = start_config[1] + dy
-        if self.CheckInvalidConfig(ExConfig):
+        if self.CheckInvalidConfig(start_config) or self.CheckInvalidConfig(end_config):
             return None
-        else:
-            
+
+        config = [0,0]
+        for j in range(len(start_config)):
+            config[j] = start_config[j]     
+        
+        sampling_rate = 100;
+        diff = end_config - start_config
+        diff /= sampling_rate
+        collision = 0
+        delta = 50    
+
+        while(not collision and delta>0):
+            config += diff
+            delta -=1
             with self.robot.GetEnv():
                 T = self.robot.GetTransform()
                 orig_T = T
-                T[0][3] = ExConfig[0]
-                T[1][3] = ExConfig[1]
+                T[0][3] = config[0]
+                T[1][3] = config[1]
                 self.robot.SetTransform(T)
 
-                if self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetRobots()[0]):
+                collision = self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetRobots()[0])
+                if (collision):
                     self.robot.SetTransform(orig_T)
-                    return None
+                    config -= diff
+                    
                 else:
                     self.robot.SetTransform(orig_T)
-                    return ExConfig
+        
+        return config 
+
+
+        # dx = (end_config[0]-start_config[0])*delta
+        # dy = (end_config[1]-start_config[1])*delta
+        # ExConfig = [0]*2
+        # ExConfig[0] = start_config[0] + dx
+        # ExConfig[1] = start_config[1] + dy
+        # if self.CheckInvalidConfig(ExConfig):
+        #     return None
+        # else:
+            
+        #     with self.robot.GetEnv():
+        #         T = self.robot.GetTransform()
+        #         orig_T = T
+        #         T[0][3] = ExConfig[0]
+        #         T[1][3] = ExConfig[1]
+        #         self.robot.SetTransform(T)
+
+        #         if self.robot.GetEnv().CheckCollision(self.robot.GetEnv().GetRobots()[0]):
+        #             self.robot.SetTransform(orig_T)
+        #             return None
+        #         else:
+        #             self.robot.SetTransform(orig_T)
+        #             return ExConfig
 
 
 

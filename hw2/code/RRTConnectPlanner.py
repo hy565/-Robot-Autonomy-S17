@@ -1,4 +1,6 @@
 import numpy, operator
+import time
+import random
 from RRTPlanner import RRTTree
 
 class RRTConnectPlanner(object):
@@ -19,7 +21,7 @@ class RRTConnectPlanner(object):
             for r_vid in range(len(rtree_v)):
                 # print "rvid = ",r_vid
                 d = self.planning_env.ComputeDistance(ftree_v[f_vid],rtree_v[r_vid])
-                print d
+                # print d
                 if d < epsilon:
                     return 1,f_vid,r_vid
 
@@ -28,7 +30,14 @@ class RRTConnectPlanner(object):
 
 
 
-    def Plan(self, start_config, goal_config, epsilon = 1):
+    def Plan(self, start_config, goal_config, epsilon = 0.1):
+
+        # set epsilon to 1-3 for Herb
+
+        if (self.planning_env.robot.GetEnv().GetRobot('Herb2')  == self.planning_env.robot):
+            epsilon = 1
+
+        print "epsilon: ", epsilon
         
         ftree = RRTTree(self.planning_env, start_config)
         rtree = RRTTree(self.planning_env, goal_config)
@@ -38,6 +47,8 @@ class RRTConnectPlanner(object):
         rcnct = 0
         qhat = [0,0]
         k = 10
+
+        start = time.time()
 
         if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
             self.planning_env.InitializePlot(goal_config)
@@ -58,7 +69,8 @@ class RRTConnectPlanner(object):
 
             qhat = self.planning_env.GenerateRandomConfiguration()
 
-            # self.planning_env.PlotPoint(qhat)
+            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
+                self.planning_env.PlotPoint(qhat)
 
             fv_id, fv = ftree.GetNearestVertex(qhat)
             rv_id, rv = rtree.GetNearestVertex(qhat)
@@ -73,11 +85,13 @@ class RRTConnectPlanner(object):
             #         print "broke"
             #         break
             #     #elif()
+
             mf = self.planning_env.Extend(fv,qhat)
             fv_id, fv = ftree.GetNearestVertex(mf)
             mf_id = ftree.AddVertex(mf)
             ftree.AddEdge(fv_id,mf_id)
-            # self.planning_env.PlotEdge(fv,mf)
+            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
+                self.planning_env.PlotEdge(fv,mf)
 
 
             # #Extend for rtree
@@ -93,16 +107,17 @@ class RRTConnectPlanner(object):
             rv_id, rv = rtree.GetNearestVertex(mr)
             mr_id = rtree.AddVertex(mr)
             rtree.AddEdge(rv_id,mr_id)
-            # self.planning_env.PlotEdge(rv,mr)
+            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
+                self.planning_env.PlotEdge(rv,mr)
 
             CheckEndGame,fcnct,rcnct = self.Endgame(ftree.vertices,rtree.vertices,epsilon)
             if CheckEndGame == 1:
                 fcnct_id = rtree.AddVertex(ftree.vertices[fcnct])
                 rtree.AddEdge(rcnct,fcnct_id)
 
-        
+        if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
 
-        # self.planning_env.PlotEdge(ftree.vertices[fcnct], rtree.vertices[rcnct])
+            self.planning_env.PlotEdge(ftree.vertices[fcnct], rtree.vertices[rcnct])
 
         #Generate Path
 
@@ -130,15 +145,40 @@ class RRTConnectPlanner(object):
 
 
         #Plot the path
-        # self.planning_env.ShowPlan(plan)
+        if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
+            self.planning_env.ShowPlan(plan)
 
-        #plan_star = self.ShortenPath(plan)
+        plan_star = self.planning_env.ShortenPath(plan)
 
-        #self.planning_env.ShowPlan(plan_star, 'g')
+        
+        if len(plan_star) < len(plan):
+            print "shorter path found!"
+            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
+                self.planning_env.ShowPlan(plan_star, 'g')
 
 
         #plan.append(goal_config)
-        
+        elapsed = time.time() - start
+
+
+
+        print elapsed
+        print self.getCost(plan)
+
+        print len(ftree.vertices) + len(rtree.vertices)
+        # print self.getCost(numpy.array(plan_star))
+        self.path_star = plan_star
         self.path = plan        
-        print plan
+        # print plan
         return plan
+
+    def getCost(self,plan):
+
+        sumdist = 0
+        for i in range(len(plan)-1):
+            
+            dist = self.planning_env.ComputeDistance(plan[i], plan[i+1])
+            sumdist += dist
+        return sumdist
+
+
