@@ -5,7 +5,7 @@ class DiscreteEnvironment(object):
     def __init__(self, resolution, lower_limits, upper_limits):
 
         # Store the resolution
-        self.resolution = resolution
+        self.resolution = float(resolution)
 
         # Store the bounds
         self.lower_limits = lower_limits
@@ -26,7 +26,8 @@ class DiscreteEnvironment(object):
         # This function maps a node configuration in full configuration
         # space to a node in discrete space
         #
-        node_id = 0
+        coord = self.ConfigurationToGridCoord(config)
+        node_id = self.GridCoordToNodeId(coord)
         return node_id
 
     def NodeIdToConfiguration(self, nid):
@@ -35,7 +36,11 @@ class DiscreteEnvironment(object):
         # This function maps a node in discrete space to a configuraiton
         # in the full configuration space
         #
-        config = [0] * self.dimension
+        if nid < 0 or nid > numpy.prod(self.num_cells)-1 :
+            return None
+        
+        coord = self.NodeIdToGridCoord(nid)
+        config = self.GridCoordToConfiguration(coord)
         return config
         
     def ConfigurationToGridCoord(self, config):
@@ -44,7 +49,13 @@ class DiscreteEnvironment(object):
         # This function maps a configuration in the full configuration space
         # to a grid coordinate in discrete space
         #
-        coord = [0] * self.dimension
+        config = numpy.array(config).astype(float)
+        
+        offset = numpy.subtract(config,self.lower_limits)
+        coord = numpy.divide(offset,self.resolution)
+
+        coord = numpy.minimum(coord, numpy.subtract(self.num_cells,1))
+        coord = coord.astype(int)
         return coord
 
     def GridCoordToConfiguration(self, coord):
@@ -53,7 +64,15 @@ class DiscreteEnvironment(object):
         # This function smaps a grid coordinate in discrete space
         # to a configuration in the full configuration space
         #
-        config = [0] * self.dimension
+        coord = numpy.array(coord).astype(float)
+        config = self.lower_limits + numpy.multiply(coord,self.resolution)
+        
+        for dim in range(0, len(coord)):
+            if coord[dim] == self.num_cells[dim]-1:
+                config[dim] += (self.upper_limits[dim]-config[dim])/2
+            else:
+                config[dim] += self.resolution/2
+
         return config
 
     def GridCoordToNodeId(self,coord):
@@ -61,7 +80,7 @@ class DiscreteEnvironment(object):
         # TODO:
         # This function maps a grid coordinate to the associated
         # node id 
-        node_id = 0
+        node_id = numpy.ravel_multi_index(coord,self.num_cells,order='F')
         return node_id
 
     def NodeIdToGridCoord(self, node_id):
@@ -69,8 +88,10 @@ class DiscreteEnvironment(object):
         # TODO:
         # This function maps a node id to the associated
         # grid coordinate
-        coord = [0] * self.dimension
-        return coord
+        if node_id < 0 or node_id > numpy.prod(self.num_cells)-1 :
+            return None
+        
+        return numpy.array(numpy.unravel_index(node_id,self.num_cells,order='F'))
         
         
         
