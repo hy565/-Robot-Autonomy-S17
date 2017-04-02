@@ -7,24 +7,98 @@ class GraspPlanner(object):
         self.base_planner = base_planner
         self.arm_planner = arm_planner
 
-            
+
     def GetBasePoseForObjectGrasp(self, obj):
 
         # Load grasp database
         gmodel = openravepy.databases.grasping.GraspingModel(self.robot, obj)
         if not gmodel.load():
             gmodel.autogenerate()
+        self.graspindices = self.gmodel.graspindices
+        self.grasps = self.gmodel.grasps
 
         base_pose = None
         grasp_config = None
-       
+
         ###################################################################
         # TODO: Here you will fill in the function to compute
-        #  a base pose and associated grasp config for the 
+        #  a base pose and associated grasp config for the
         #  grasping the bottle
+
+        for i,grasp in enumerate(self.grasps_ordered):
+          print('Evaluated ' + str(i) + '/' + str(len(self.grasps_ordered)))
+          grasp[self.graspindices.get('performance')] = self.eval_grasp(grasp)
+
+        # sort! (in decreasing score order; best->worst)
+        order = np.argsort(self.grasps_ordered[:,self.graspindices.get('performance')[0]])
+        order = order[::-1]
+        self.grasps_ordered = self.grasps_ordered[order]
+
+        for grasp in self.grasps_ordered:
+            # TODO try reachability here
+            pass
+
         ###################################################################
-        
+
         return base_pose, grasp_config
+
+
+    def eval_grasp(self, grasp):
+        """
+        function to evaluate grasps
+        returns a score, which is some metric of the grasp
+        higher score should be a better grasp
+        """
+        with self.robot:
+          #contacts is a 2d array, where contacts[i,0-2] are the positions of contact i and contacts[i,3-5] is the direction
+          try:
+            contacts,finalconfig,mindist,volume = self.gmodel.testGrasp(grasp=grasp,translate=True,forceclosure=False)
+
+            obj_position = self.gmodel.target.GetTransform()[0:3,3]
+            # for each contact
+            G = np.zeros((6,len(contacts))) #the wrench matrix
+            for i, c in enumerate(contacts):
+              pos = c[0:3] - obj_position
+              dir = -c[3:] #this is already a unit vector
+
+              G[0:3,i] = pos
+              G[3:6,i] = np.cross(pos,dir)
+
+            rankG = np.linalg.matrix_rank(G)
+            if (rankG<6):
+                return 0.0
+            # print('Rank of G is:', rankG)
+
+            METRIC = 1
+
+            if (METRIC==1):
+                # Metric 1: minimum singular value
+                U, s, V = np.linalg.svd(G, full_matrices=True)
+                # S = np.diag(s)
+                score = s[-1] # sigma_min
+            elif (METRIC==2):
+                # Metric 2: Isotropy
+                U, s, V = np.linalg.svd(G, full_matrices=True)
+                score = s[-1]/s[0]
+            elif (METRIC==3):
+                # Metric 3: Volume of grasp map
+                score =  np.sqrt(np.linalg.det(np.dot(G,np.transpose(G))))
+                if (math.isnan(score)):
+                    print("We'll set this value to zero.")
+                    score = 0.0
+            else:
+                print("Please choose metric.")
+                return
+
+            # print(score)
+            # self.show_grasp(grasp)
+
+            return score
+
+          except openravepy.planning_error,e:
+            #you get here if there is a failure in planning
+            #example: if the hand is already intersecting the object at the initial position/orientation
+            return  0.00 # TODO you may want to change this
 
     def PlanToGrasp(self, obj):
 
@@ -54,4 +128,3 @@ class GraspPlanner(object):
         # Grasp the bottle
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)
         task_manipultion.CloseFingers()
-    
