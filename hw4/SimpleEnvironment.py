@@ -1,7 +1,7 @@
 import numpy, openravepy
 import pylab as pl
 from DiscreteEnvironment import DiscreteEnvironment
-
+import itertools
 class Control(object):
     def __init__(self, omega_left, omega_right, duration):
         self.ul = omega_left
@@ -112,6 +112,20 @@ class SimpleEnvironment(object):
         #  up the configuration associated with the particular node_id
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
+
+        current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
+        neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))        
+        neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
+        candidates = [np.array(current_grid) + n for n in np.array(neighbor_gen)]
+        successors = [c for c in candidates
+                        if (np.all(c >= np.array([0]*self.discrete_env.dimension))) and \
+                           (np.all(c <  np.array(self.discrete_env.num_cells)))]
+        #Check for collisions
+        successors = [self.discrete_env.GridCoordToNodeId(s) for s in successors 
+                        if not self.RobotIsInCollisionAt(self.discrete_env.GridCoordToConfiguration(s))]
+
+        return successors
+
         
         return successors
 
@@ -122,7 +136,9 @@ class SimpleEnvironment(object):
         # TODO: Here you will implement a function that 
         # computes the distance between the configurations given
         # by the two node ids
-
+        start_config = self.discrete_env.NodeIdToConfiguration(start_id)
+        end_config = self.discrete_env.NodeIdToConfiguration(end_id)
+        dist = np.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since omnidirectional
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
@@ -133,6 +149,30 @@ class SimpleEnvironment(object):
         # computes the heuristic cost between the configurations
         # given by the two node ids
         
-        
+        start_config = self.discrete_env.NodeIdToConfiguration(start_id)
+        goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
+        cost = np.linalg.norm(start_config - goal_config) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
         return cost
 
+    def RobotIsInCollisionAt(self, point=None):
+        """
+        Call self.RobotIsInCollisionAt() to check collision in current state
+             self.RobotIsInCollisionAt(np2darray) to check at another point
+        """
+
+        # Point should be a 2D np array with the configuration.
+        # Leave empty if checking collision at current point
+        if point is None:
+            return self.robot.GetEnv().CheckCollision(self.robot)
+
+        # If checking collision in point other than current state, move robot
+        #  to that point, check collision, then move it back.
+        current_state = self.robot.GetTransform()
+
+        check_state = np.copy(current_state)
+        check_state[:2,3] = point
+        self.robot.SetTransform(check_state)
+
+        in_collision = self.robot.GetEnv().CheckCollision(self.robot)
+        self.robot.SetTransform(current_state)  # move robot back to current state
+        return in_collision
