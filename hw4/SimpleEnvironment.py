@@ -113,6 +113,10 @@ class SimpleEnvironment(object):
 
             vel = self.discrete_env.resolution #Speed to move is equal to resolution, assuming resolution is less than one
 
+            #For large distances from the goal, increase velocity:
+            if ComputeDistance(start_config,goal_config)>4*resolution[1]:
+            	vel[1]=4*resolution[1]
+
             #Move Forward from current configuration/pose in the x-direction:
             ControlF = (vel[1]/(2*L*r*numpy.cos(config1[2])), vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
             
@@ -181,6 +185,7 @@ class SimpleEnvironment(object):
         start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))
         goal_config_coordinates = numpy.array(copy.deepcopy(goal_config[:1]))
         cost = np.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        #The robot should move towards the goal position, then adjust its orientation
         return cost
 
     def RobotIsInCollisionAt(self, point=None):
