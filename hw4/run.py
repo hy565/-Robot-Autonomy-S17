@@ -7,6 +7,7 @@ from HerbEnvironment import HerbEnvironment
 from SimpleRobot import SimpleRobot
 from SimpleEnvironment import SimpleEnvironment
 from GraspPlanner import GraspPlanner
+import sys
 # from AStarPlanner import AStarPlanner
 # TODO: Import the applicable RRTPlanner
 
@@ -64,12 +65,6 @@ if __name__ == "__main__":
         robot.SetActiveManipulator('left_wam')
 
     robot.controller = openravepy.RaveCreateController(robot.GetEnv(), 'IdealController')
-    robot.ikmodel = openravepy.databases.inversekinematics.InverseKinematicsModel(robot, iktype=openravepy.IkParameterization.Type.Transform6D)
-    if not robot.ikmodel.load():
-        print("Generating IK model.")
-        robot.ikmodel.autogenerate()
-    else:
-        print("Loaded IK model.")
 
     # Create environments for planning the arm and base
     resolution = [args.hres, args.hres, args.tres]
@@ -100,6 +95,8 @@ if __name__ == "__main__":
     bottle_transform = bottle.GetTransform()
     bottle_transform[2,3] = table_aabb.pos()[2] + table_aabb.extents()[2]
 
+    # env.RemoveKinBody(table) #TODO take this out
+
     if args.test == 1:
         bottle_transform[:2,3] = table_aabb.pos()[:2]
     elif args.test == 2:
@@ -110,12 +107,33 @@ if __name__ == "__main__":
         bottle_transform[1,3] = table_aabb.pos()[1] + 0.5*table_aabb.extents()[1]
 
     bottle.SetTransform(bottle_transform)
+
+    # IK model
+    print "Attempting to load IK model..."
+    robot.ikmodel = openravepy.databases.inversekinematics.InverseKinematicsModel(robot, iktype=openravepy.IkParameterization.Type.Transform6D)
+    if not robot.ikmodel.load():
+        print("Generating IK model.")
+        robot.ikmodel.autogenerate()
+    else:
+    print("Loaded IK model!\n")
+
+    # Inverse reachability model
+    print "Attempting to load IR model..."
+    robot.irmodel = openravepy.databases.inversereachability.InverseReachabilityModel(robot)
+    if not robot.irmodel.load():
+        print 'Could not load inverse reachability model.'
+        sys.exit()
+    else:
+        print "Loaded IR model!"
+
+    print("\nDone loading environment.\n")
+
     planner = GraspPlanner(herb.robot, base_planner, arm_planner)
 
     raw_input("Hit enter to start planning.")
     planner.GetBasePoseForObjectGrasp(bottle)
 
-    raw_input("Found grasp. Hit enter to plan to grasp.")
+    raw_input("\nFound grasp. Hit enter to plan to grasp.")
     planner.PlanToGrasp(bottle)
 
     import IPython
