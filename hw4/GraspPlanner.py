@@ -25,25 +25,17 @@ class GraspPlanner(object):
         self.graspindices = self.gmodel.graspindices
         self.grasps = self.gmodel.grasps
 
+        base_pose = None
+        grasp_config = None
 
-        # sort! (in decreasing score order; best->worst)
+        ###################################################################
+        # sort graspset (in decreasing score order; best->worst)
         self.grasps_ordered = self.grasps.copy() #you should change the order of self.grasps_ordered
         order = np.argsort(self.grasps_ordered[:,self.graspindices.get('performance')[0]])
         order = order[::-1]
         self.grasps_ordered = self.grasps_ordered[order]
 
-        base_pose = None
-        grasp_config = None
-
-        ###################################################################
-        # TODO: Here you will fill in the function to compute
-        #  a base pose and associated grasp config for the
-        #  grasping the bottle
-
-        original = self.robot.GetTransform()
-
-        # Go through graspset and find one that works
-        # start_at_index = 117    # Cheating because I know where the good one is, for less waiting
+        # Go through sorted graspset and find one that works
         for i, grasp in enumerate(self.grasps_ordered):
             print "Checking grasp #", i, "/", len(self.grasps_ordered)
 
@@ -53,17 +45,12 @@ class GraspPlanner(object):
             # Test validity of grasp
             densityfn,samplerfn,bounds = self.robot.irmodel.computeBaseDistribution(grasp_c)
             arm_config, pose = self.test_grasp(grasp_c, densityfn,samplerfn,bounds)
+
+            # Check if it works
             if arm_config is not None:
-                print(grasp[self.graspindices.get('performance')])
                 base_pose = pose
                 grasp_config = grasp_c
                 break
-
-        # self.robot.SetTransform(base_pose)
-        # cur = self.robot.GetDOFValues()
-        # cur[self.manip.GetArmIndices()] = arm_config
-        # self.robot.SetDOFValues(cur)
-        # raw_input("Check grasp")
         ###################################################################
 
         return base_pose, grasp_config
@@ -108,6 +95,7 @@ class GraspPlanner(object):
             exit()
 
         # Now plan to the base pose
+        print 'Planning base trajectory'
         start_pose = np.array(self.base_planner.planning_env.herb.GetCurrentConfiguration())
         base_plan = self.base_planner.Plan(start_pose, base_pose)
         base_traj = self.base_planner.planning_env.herb.ConvertPlanToTrajectory(base_plan)
@@ -116,6 +104,7 @@ class GraspPlanner(object):
         self.base_planner.planning_env.herb.ExecuteTrajectory(base_traj)
 
         # Now plan the arm to the grasp configuration
+        print 'Planning arm trajectory'
         start_config = np.array(self.arm_planner.planning_env.herb.GetCurrentConfiguration())
         arm_plan = self.arm_planner.Plan(start_config, grasp_config)
         arm_traj = self.arm_planner.planning_env.herb.ConvertPlanToTrajectory(arm_plan)
@@ -177,4 +166,4 @@ class GraspPlanner(object):
 
           except openravepy.planning_error,e:
               print("Planning error")
-              return 9999
+              return None
