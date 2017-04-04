@@ -22,10 +22,10 @@ class SimpleEnvironment(object):
         self.boundary_limits = [[-5., -5., -numpy.pi], [5., 5., numpy.pi]]
         lower_limits, upper_limits = self.boundary_limits
         
-        # self.discrete_env = DiscreteEnvironment(resolution, lower_limits, upper_limits)
+        self.discrete_env = DiscreteEnvironment(resolution, lower_limits, upper_limits)
 
-        # self.resolution = resolution
-        # self.ConstructActions()
+        self.resolution = resolution
+        self.ConstructActions()
 
     def GenerateFootprintFromControl(self, start_config, control, stepsize=0.01):
 
@@ -105,26 +105,58 @@ class SimpleEnvironment(object):
             #
             L = 0.5 #Distance between wheels for herb
             r = 0.2 #Radius of the wheel for herb
-            config1 = copy.deepcopy(start_config) #Make a copy of the initial configuration
+            curr_config = copy.deepcopy(start_config) #Make a copy of the initial configuration
 
             #Set of Actions:
             #Move Forward, Move Backward, Turn left by pi/4, Turn right by pi/4 :: Euclidean distance
             #Moving Forward by 1 block:
-            vel = self.discrete_env.resolution #Speed to move is equal to resolution, assuming resolution is less than one
+
+            # vel = self.discrete_env.resolution #Speed to move is equal to resolution, assuming resolution is less than one
+
+            #For large distances from the goal, increase velocity:
+            # if self.ComputeDistance(start_config,goal_config)>4*resolution[1]:
+            	# vel[1]=4*resolution[1]
+
+            # #Move Forward from current configuration/pose in the x-direction:
+            # ControlF = (vel[1]/(2*L*r*numpy.cos(config1[2])), vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
+            
+            # #Move Backward from current configuration/pose in the x-direction:
+            # ControlB = (-vel[1]/(2*L*r*numpy.cos(config1[2])), -vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
+            
+            # #Move Forward from current configuration/pose in the y-direction:
+            # ControlF = (vel[2]/(2*L*r*numpy.sin(config[2])), vel[2]/(2*L*r*numpy.sin(config[2])), 1)  #ul,ur,time
+            
+            # #Move Backward from current configuration/pose in the y-direction:
+            # ControlB = (-vel[2]/(2*L*r*numpy.cos(config1[2])), -vel[2]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
+
+            # #Turn right by pi/4:
+            # ControlR = (vel[1], -vel[1], 0.25)
+            
+            # #Turn left by pi/4:
+            # ControlR = (-vel[1], vel[1], 0.25)
+
+            ##Construct action objects
+
 
             #Move Forward from current configuration/pose in the x-direction:
-            ControlF = (vel[1], vel[1], 1)  #wl,wr,time
+            ControlF = self.Control(1,1, 1)  #ul,ur,time
+            FootprintF = self.GenerateFootprintFromControl(curr_config, ControlF)
+            ActionF = self.Action(ControlF, FootprintF)
             #Move Backward from current configuration/pose in the x-direction:
+            ControlB = self.Control(1,1, 1)  #ul,ur,time
+            FootprintB = self.GenerateFootprintFromControl(curr_config, ControlB)
+            ActionB = self.Action(ControlB, FootprintB)
+            #Turn CW by pi/4:
+            ControlCW = self.Control(1, -1, 0.25)
+            FootprintCW = self.GenerateFootprintFromControl(curr_config, ControlCW)
+            ActionCW = self.Action(ControlCW, FootprintCW)
+            #Turn CCW by pi/4:
+            ControlCCW = self.Control(-1, 1, 0.25)
+            FootprintCCW = self.GenerateFootprintFromControl(curr_config, ControlCCW)
+            ActionCCW = self.Action(ControlCCW, FootprintCCW)
 
-            #Move Forward from current configuration/pose in the y-direction:
-            ControlF = (vel[2], vel[2], 1)  #wl,wr,time
-            #Move Backward from current configuration/pose in the y-direction:
-            ControlB = (-vel[2], -vel[2], 1)  #wl,wr,time
+            actions[idx] = [ActionF, ActionB, ActionCW, ActionCCW]
 
-            #Turn right by pi/4:
-            ControlR = (vel[1], -vel[1], 0.25)
-            #Turn right by pi/4:
-            ControlR = (-vel[1], vel[1], 0.25)
 
     def GetSuccessors(self, node_id):
 
@@ -134,18 +166,28 @@ class SimpleEnvironment(object):
         #  up the configuration associated with the particular node_id
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
-
+        #candidates = []
+        
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
-        neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
-        neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
-        candidates = [np.array(current_grid) + n for n in np.array(neighbor_gen)]
-        successors = [c for c in candidates
-                        if (np.all(c >= np.array([0]*self.discrete_env.dimension))) and \
-                           (np.all(c <  np.array(self.discrete_env.num_cells)))]
-        #Check for collisions
-        successors = [self.discrete_env.GridCoordToNodeId(s) for s in successors
-                        if not self.RobotIsInCollisionAt(self.discrete_env.GridCoordToConfiguration(s))]
+        current_orientation = current_grid[2]#Get the current orientation
+        current_config = self.discrete_env.NodeIdToConfiguration
+        collision = False #Initialize collision flag as false
+        for action in self.actions[current_orientation]:
+        	for footprint in action.footprint:
+       			if self.RobotIsInCollisionAt(self, footprint):
+       				collision =  True #Set collision flag
+       				break
+       		if not collision:
+       			#candidates = candidates.append(footprint[-1]) #Append the 'snapped' footprint
+       			successors.append(tuple(footprint[-1], action.control)) #Append the 'snapped' footprint and its control
 
+        # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
+        # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
+        # candidates = [np.array(current_grid) + n for n in np.array(neighbor_gen)]
+        # successors = [c for c in candidates
+        #                 if (np.all(c >= np.array([0]*self.discrete_env.dimension))) and \
+        #                    (np.all(c <  np.array(self.discrete_env.num_cells)))]
+        
         return successors
 
 
@@ -158,7 +200,9 @@ class SimpleEnvironment(object):
         # by the two node ids
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
-        dist = np.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
+        start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))     #do we ignore distance in the orientation space here?
+        end_config_coordinates = numpy.array(copy.deepcopy(end_config[:1]))
+        dist = np.linalg.norm(start_config_coordinates - end_config_coordinates) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
@@ -171,7 +215,10 @@ class SimpleEnvironment(object):
 
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
-        cost = np.linalg.norm(start_config - goal_config) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))
+        goal_config_coordinates = numpy.array(copy.deepcopy(goal_config[:1]))
+        cost = np.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        #The robot should move towards the goal position, then adjust its orientation
         return cost
 
     def RobotIsInCollisionAt(self, point=None):
