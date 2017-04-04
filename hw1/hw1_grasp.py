@@ -92,6 +92,9 @@ class RoboHandler:
     "order the grasps - call eval grasp on each, set the 'performance' index, and sort"
     self.grasps_ordered = self.grasps.copy() #you should change the order of self.grasps_ordered
 
+    import IPython
+    IPython.embed()
+
     for i,grasp in enumerate(self.grasps_ordered):
       print('Evaluated ' + str(i) + '/' + str(len(self.grasps_ordered)))
       grasp[self.graspindices.get('performance')] = self.eval_grasp(grasp)
@@ -246,7 +249,6 @@ class RoboHandler:
 
     return grasp
 
-
   def show_grasp(self, grasp, delay=30):
     "displays the grasp"
     with openravepy.RobotStateSaver(self.gmodel.robot):
@@ -254,7 +256,7 @@ class RoboHandler:
         time.sleep(0.1) # let viewer update?
         try:
           with self.env:
-            contacts,finalconfig,mindist,volume = self.gmodel.testGrasp(grasp=grasp,translate=True,forceclosure=True)
+            contacts,finalconfig,mindist,volume = self.gmodel.testGrasp(grasp=grasp)
             #if mindist == 0:
             #  print 'grasp is not in force closure!'
             contactgraph = self.gmodel.drawContacts(contacts) if len(contacts) > 0 else None

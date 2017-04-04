@@ -115,7 +115,7 @@ if __name__ == "__main__":
         print("Generating IK model.")
         robot.ikmodel.autogenerate()
     else:
-    print("Loaded IK model!\n")
+        print("Loaded IK model!\n")
 
     # Inverse reachability model
     print "Attempting to load IR model..."
