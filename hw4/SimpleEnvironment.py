@@ -127,6 +127,7 @@ class SimpleEnvironment(object):
 
             #Turn right by pi/4:
             ControlR = (vel[1], -vel[1], 0.25)
+            
             #Turn left by pi/4:
             ControlR = (-vel[1], vel[1], 0.25)
 
@@ -162,7 +163,9 @@ class SimpleEnvironment(object):
         # by the two node ids
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
-        dist = np.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
+        start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))
+        end_config_coordinates = numpy.array(copy.deepcopy(end_config[:1]))
+        dist = np.linalg.norm(start_config_coordinates - end_config_coordinates) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
@@ -175,7 +178,9 @@ class SimpleEnvironment(object):
 
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
-        cost = np.linalg.norm(start_config - goal_config) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))
+        goal_config_coordinates = numpy.array(copy.deepcopy(goal_config[:1]))
+        cost = np.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
         return cost
 
     def RobotIsInCollisionAt(self, point=None):
