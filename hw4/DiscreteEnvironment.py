@@ -72,11 +72,11 @@ class DiscreteEnvironment(object):
         coord = numpy.array(coord).astype(float)
         config = self.lower_limits + numpy.multiply(coord,self.resolution)
         
-        for dim in range(0, len(coord)):
-            if coord[dim] == self.num_cells[dim]-1:
-                config[dim] += (self.upper_limits[dim]-config[dim])/2
-            else:
-                config[dim] += self.resolution/2
+        # for dim in range(0, len(coord)):
+        #     if coord[dim] == self.num_cells[dim]-1:
+        #         config[dim] += (self.upper_limits[dim]-config[dim])/2
+        #     else:
+        #         config[dim] += self.resolution/2
 
         return config
 

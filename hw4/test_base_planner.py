@@ -54,7 +54,8 @@ if __name__ == "__main__":
 
     raw_input('Move robot to goal config and press enter')
     gid = base_env.discrete_env.ConfigurationToNodeId(herb_base.GetCurrentConfiguration())
-    goal_config = base_env.discrete_env.NodeIdToConfiguration(gid)
+    # goal_config = base_env.discrete_env.NodeIdToConfiguration(gid)
+    goal_config = numpy.array([3.0, 0.0, 0.0])
     herb_base.SetCurrentConfiguration(goal_config)
 
     tgoal = robot.GetTransform()

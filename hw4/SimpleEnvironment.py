@@ -21,7 +21,9 @@ class SimpleEnvironment(object):
         self.robot = herb.robot
         self.boundary_limits = [[-5., -5., -numpy.pi], [5., 5., numpy.pi]]
         lower_limits, upper_limits = self.boundary_limits
-        
+        self.lower_limits = lower_limits
+        self.upper_limits = upper_limits
+
         self.discrete_env = DiscreteEnvironment(resolution, lower_limits, upper_limits)
 
         self.resolution = resolution
@@ -98,6 +100,7 @@ class SimpleEnvironment(object):
         for idx in range(int(self.discrete_env.num_cells[2])):
             self.actions[idx] = []
             grid_coordinate[2] = idx
+            print grid_coordinate
             start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
 
             # TODO: Here you will construct a set of actions
@@ -139,23 +142,24 @@ class SimpleEnvironment(object):
 
 
             #Move Forward from current configuration/pose in the x-direction:
-            ControlF = self.Control(1,1, 1)  #ul,ur,time
-            FootprintF = self.GenerateFootprintFromControl(curr_config, ControlF)
-            ActionF = self.Action(ControlF, FootprintF)
+            ControlF =  Control(1,1, 1)  #ul,ur,time
+            FootprintF =  self.GenerateFootprintFromControl(curr_config, ControlF)
+            ActionF =  Action(ControlF, FootprintF)
             #Move Backward from current configuration/pose in the x-direction:
-            ControlB = self.Control(1,1, 1)  #ul,ur,time
-            FootprintB = self.GenerateFootprintFromControl(curr_config, ControlB)
-            ActionB = self.Action(ControlB, FootprintB)
+            ControlB =  Control(1,1, 1)  #ul,ur,time
+            FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
+            ActionB =  Action(ControlB, FootprintB)
             #Turn CW by pi/4:
-            ControlCW = self.Control(1, -1, 0.25)
-            FootprintCW = self.GenerateFootprintFromControl(curr_config, ControlCW)
-            ActionCW = self.Action(ControlCW, FootprintCW)
+            ControlCW =  Control(1, -1, 0.25)
+            FootprintCW =  self.GenerateFootprintFromControl(curr_config, ControlCW)
+            ActionCW =  Action(ControlCW, FootprintCW)
             #Turn CCW by pi/4:
-            ControlCCW = self.Control(-1, 1, 0.25)
-            FootprintCCW = self.GenerateFootprintFromControl(curr_config, ControlCCW)
-            ActionCCW = self.Action(ControlCCW, FootprintCCW)
+            ControlCCW =  Control(-1, 1, 0.25)
+            FootprintCCW =  self.GenerateFootprintFromControl(curr_config, ControlCCW)
+            ActionCCW =  Action(ControlCCW, FootprintCCW)
 
-            actions[idx] = [ActionF, ActionB, ActionCW, ActionCCW]
+            self.actions[idx] = [ActionF, ActionB, ActionCW, ActionCCW]
+            
 
 
     def GetSuccessors(self, node_id):
@@ -171,23 +175,24 @@ class SimpleEnvironment(object):
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
         current_orientation = current_grid[2]#Get the current orientation
         current_config = self.discrete_env.NodeIdToConfiguration
-        collision = False #Initialize collision flag as false
+        
         for action in self.actions[current_orientation]:
-        	for footprint in action.footprint:
-       			if self.RobotIsInCollisionAt(self, footprint):
-       				collision =  True #Set collision flag
-       				break
-       		if not collision:
-       			#candidates = candidates.append(footprint[-1]) #Append the 'snapped' footprint
-       			successors.append(tuple(footprint[-1], action.control)) #Append the 'snapped' footprint and its control
-
+            collision = False    #Initialize collision flag as false
+            for footprint in action.footprint:
+                if self.RobotIsInCollisionAt(footprint):
+                    collision =  True #Set collision flag
+                    break
+            if not collision:
+                # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
+                successors.append(action)
         # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
         # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
-        # candidates = [np.array(current_grid) + n for n in np.array(neighbor_gen)]
+        # candidates = [numpy.array(current_grid) + n for n in numpy.array(neighbor_gen)]
         # successors = [c for c in candidates
-        #                 if (np.all(c >= np.array([0]*self.discrete_env.dimension))) and \
-        #                    (np.all(c <  np.array(self.discrete_env.num_cells)))]
+        #                 if (numpy.all(c >= numpy.array([0]*self.discrete_env.dimension))) and \
+        #                    (numpy.all(c <  numpy.array(self.discrete_env.num_cells)))]
         
+        print successors
         return successors
 
 
@@ -202,7 +207,7 @@ class SimpleEnvironment(object):
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
         start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))     #do we ignore distance in the orientation space here?
         end_config_coordinates = numpy.array(copy.deepcopy(end_config[:1]))
-        dist = np.linalg.norm(start_config_coordinates - end_config_coordinates) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
+        dist = numpy.linalg.norm(start_config_coordinates - end_config_coordinates) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
@@ -217,17 +222,17 @@ class SimpleEnvironment(object):
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
         start_config_coordinates = numpy.array(copy.deepcopy(start_config[:1]))
         goal_config_coordinates = numpy.array(copy.deepcopy(goal_config[:1]))
-        cost = np.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        cost = numpy.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
         #The robot should move towards the goal position, then adjust its orientation
         return cost
 
     def RobotIsInCollisionAt(self, point=None):
         """
         Call self.RobotIsInCollisionAt() to check collision in current state
-             self.RobotIsInCollisionAt(np2darray) to check at another point
+             self.RobotIsInCollisionAt(numpy2darray) to check at another point
         """
 
-        # Point should be a 2D np array with the configuration.
+        # Point should be a 2D numpy array with the configuration.
         # Leave empty if checking collision at current point
         if point is None:
             return self.robot.GetEnv().CheckCollision(self.robot)
@@ -235,9 +240,9 @@ class SimpleEnvironment(object):
         # If checking collision in point other than current state, move robot
         #  to that point, check collision, then move it back.
         current_state = self.robot.GetTransform()
-
-        check_state = np.copy(current_state)
-        check_state[:2,3] = point
+        print current_state
+        check_state = numpy.copy(current_state)
+        check_state[:2,3] = point[0:2]
         self.robot.SetTransform(check_state)
 
         in_collision = self.robot.GetEnv().CheckCollision(self.robot)
