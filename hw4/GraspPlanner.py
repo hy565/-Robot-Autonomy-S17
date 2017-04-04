@@ -25,6 +25,13 @@ class GraspPlanner(object):
         self.graspindices = self.gmodel.graspindices
         self.grasps = self.gmodel.grasps
 
+
+        # sort! (in decreasing score order; best->worst)
+        self.grasps_ordered = self.grasps.copy() #you should change the order of self.grasps_ordered
+        order = np.argsort(self.grasps_ordered[:,self.graspindices.get('performance')[0]])
+        order = order[::-1]
+        self.grasps_ordered = self.grasps_ordered[order]
+
         base_pose = None
         grasp_config = None
 
@@ -33,117 +40,75 @@ class GraspPlanner(object):
         #  a base pose and associated grasp config for the
         #  grasping the bottle
 
-        cur_config = self.robot.GetTransform()
-        obj_config = obj.GetTransform()
-        robot_x = cur_config[0,3]
+        original = self.robot.GetTransform()
 
-        while not self.robot.GetEnv().CheckCollision(self.robot):
-            robot_x += 0.1
-            robot_config = np.array([ [1, 0, 0, robot_x],
-                                      [0, 1, 0, obj_config[1,3]],
-                                      [0, 0, 1, 0],
-                                      [0, 0, 0, 1]])
-            self.robot.SetTransform(robot_config)
-
-        robot_x = 0.25 #TODO take this out
-        robot_config = np.array([ [1, 0, 0, robot_x-0.2],
-                                  [0, 1, 0, obj_config[1,3]],
-                                  [0, 0, 1, 0],
-                                  [0, 0, 0, 1]])
-        self.robot.SetTransform(robot_config)
-        print("Got as close to table as possible")
-
-        # robot_config = np.array([ [-1, 0, 0, robot_x],
-        #                           [0, -1, 0, obj_config[1,3]],
-        #                           [0, 0, 1, 0],
-        #                           [0, 0, 0, 1]])
-
-
-
-        # TODO evaluate quality of grasps
-        #For best grasps, test for reachability and find base pose
-        for i, grasp in enumerate(self.grasps):
-            print "Checking grasp #", i, "/", len(self.grasps)
+        # Go through graspset and find one that works
+        # start_at_index = 117    # Cheating because I know where the good one is, for less waiting
+        for i, grasp in enumerate(self.grasps_ordered):
+            print "Checking grasp #", i, "/", len(self.grasps_ordered)
 
             #Find grasp configuration
-            grasp_config = self.gmodel.getGlobalGraspTransform(grasp,collisionfree=True)
-            obj_config = obj.GetTransform()
-            grasp_config[0,3] = obj_config[0,3]
-            grasp_config[1,3] = obj_config[1,3]
-            grasp_config[2,3] = obj_config[2,3]
-            # self.show_grasp(grasp)
-            # import IPython
-            # IPython.embed()
-            # grasp_config = self.manip.GetTransform()
-            # grasp_config[0] = 0.01
-            # q = self.manip.FindIKSolution(grasp_config, filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
-            # print q
-            # if q:
-            #     import IPython
-            #     IPython.embed()
+            grasp_c = self.gmodel.getGlobalGraspTransform(grasp,collisionfree=True)
 
+            # Test validity of grasp
+            densityfn,samplerfn,bounds = self.robot.irmodel.computeBaseDistribution(grasp_c)
+            arm_config, pose = self.test_grasp(grasp_c, densityfn,samplerfn,bounds)
+            if arm_config is not None:
+                print(grasp[self.graspindices.get('performance')])
+                base_pose = pose
+                grasp_config = grasp_c
+                break
 
-            # # # TODO Test validity of grasp
-            densityfn,samplerfn,bounds = self.robot.irmodel.computeBaseDistribution(grasp_config)
-            valid_grasp = self.test_grasp(grasp_config, densityfn,samplerfn,bounds)
-
+        # self.robot.SetTransform(base_pose)
+        # cur = self.robot.GetDOFValues()
+        # cur[self.manip.GetArmIndices()] = arm_config
+        # self.robot.SetDOFValues(cur)
+        # raw_input("Check grasp")
         ###################################################################
 
         return base_pose, grasp_config
 
 
     def test_grasp(self,grasp_config,densityfn,samplerfn,bounds):
-        goals = []
-        N = 1
+        success = False
         numfailures = 0
+        N = 1
+        with self.robot.GetEnv():
+            while not success:
+                if (numfailures>3):
+                    break
+                poses,jointstate = samplerfn(N)
+                for pose in poses:
+                    self.robot.SetTransform(pose)
+                    self.robot.SetDOFValues(*jointstate)
 
-        while len(goals) < N:
-            if (numfailures>2):
-                break
-            poses,jointstate = samplerfn(N-len(goals))
-            for pose in poses:
-                # import IPython
-                # IPython.embed()
-                self.robot.SetTransform(pose)
-                self.robot.SetDOFValues(*jointstate)
-                # validate that base is not in collision
-                if not self.robot.GetEnv().CheckCollision(self.robot):
-                    q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
-                    if q is not None:
-                        print "Success!"
-                        import IPython
-                        IPython.embed()
-                    else:
-                        numfailures += 1
-                        print "numfailures = ", numfailures
-        return goals
-
-    def show_grasp(self, grasp, delay=3):
-        "displays the grasp"
-        with openravepy.RobotStateSaver(self.gmodel.robot):
-            time.sleep(0.1) # let viewer update?
-            try:
-                contacts,finalconfig,mindist,volume = self.gmodel.testGrasp(grasp=grasp)
-                contactgraph = self.gmodel.drawContacts(contacts) if len(contacts) > 0 else None
-                self.gmodel.robot.GetController().Reset(0)
-                self.gmodel.robot.SetDOFValues(finalconfig[0])
-                self.gmodel.robot.SetTransform(finalconfig[1])
-                self.env.UpdatePublishedBodies()
-                time.sleep(delay)
-            except openravepy.planning_error,e:
-              print 'bad grasp!',e
+                    # validate that base is not in collision
+                    if not self.robot.GetEnv().CheckCollision(self.robot):
+                        q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
+                        if q is not None:
+                            print "Success! Found good grasp."
+                            self.robot.SetTransform(pose)
+                            cur = self.robot.GetDOFValues()
+                            cur[self.manip.GetArmIndices()] = q
+                            self.robot.SetDOFValues(cur)
+                            pose =  self.robot.GetTransform()
+                            success = True
+                        else:
+                            numfailures += 1
+        return q, pose
 
     def PlanToGrasp(self, obj):
 
-        # Next select a pose for the base and an associated ik for the arm
+        # Select a pose for the base and an associated ik for the arm
+        print "Looking for good grasp and base pose..."
         base_pose, grasp_config = self.GetBasePoseForObjectGrasp(obj)
 
         if base_pose is None or grasp_config is None:
-            print 'Failed to find solution'
+            print 'Base pose or grasp_config is None.'
             exit()
 
         # Now plan to the base pose
-        start_pose = numpy.array(self.base_planner.planning_env.herb.GetCurrentConfiguration())
+        start_pose = np.array(self.base_planner.planning_env.herb.GetCurrentConfiguration())
         base_plan = self.base_planner.Plan(start_pose, base_pose)
         base_traj = self.base_planner.planning_env.herb.ConvertPlanToTrajectory(base_plan)
 
@@ -151,7 +116,7 @@ class GraspPlanner(object):
         self.base_planner.planning_env.herb.ExecuteTrajectory(base_traj)
 
         # Now plan the arm to the grasp configuration
-        start_config = numpy.array(self.arm_planner.planning_env.herb.GetCurrentConfiguration())
+        start_config = np.array(self.arm_planner.planning_env.herb.GetCurrentConfiguration())
         arm_plan = self.arm_planner.Plan(start_config, grasp_config)
         arm_traj = self.arm_planner.planning_env.herb.ConvertPlanToTrajectory(arm_plan)
 

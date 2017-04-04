@@ -130,10 +130,6 @@ if __name__ == "__main__":
 
     planner = GraspPlanner(herb.robot, base_planner, arm_planner)
 
-    raw_input("Hit enter to start planning.")
-    planner.GetBasePoseForObjectGrasp(bottle)
-
-    raw_input("\nFound grasp. Hit enter to plan to grasp.")
     planner.PlanToGrasp(bottle)
 
     import IPython
