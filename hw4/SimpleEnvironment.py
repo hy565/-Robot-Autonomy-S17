@@ -110,20 +110,24 @@ class SimpleEnvironment(object):
             #Set of Actions:
             #Move Forward, Move Backward, Turn left by pi/4, Turn right by pi/4 :: Euclidean distance
             #Moving Forward by 1 block:
+
             vel = self.discrete_env.resolution #Speed to move is equal to resolution, assuming resolution is less than one
 
             #Move Forward from current configuration/pose in the x-direction:
-            ControlF = (vel[1], vel[1], 1)  #wl,wr,time
+            ControlF = (vel[1]/(2*L*r*numpy.cos(config1[2])), vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
+            
             #Move Backward from current configuration/pose in the x-direction:
-
+            ControlB = (-vel[1]/(2*L*r*numpy.cos(config1[2])), -vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
+            
             #Move Forward from current configuration/pose in the y-direction:
-            ControlF = (vel[2], vel[2], 1)  #wl,wr,time
+            ControlF = (vel[2]/(2*L*r*numpy.sin(config[2])), vel[2]/(2*L*r*numpy.sin(config[2])), 1)  #ul,ur,time
+            
             #Move Backward from current configuration/pose in the y-direction:
-            ControlB = (-vel[2], -vel[2], 1)  #wl,wr,time
+            ControlB = (-vel[2]/(2*L*r*numpy.cos(config1[2])), -vel[2]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
 
             #Turn right by pi/4:
             ControlR = (vel[1], -vel[1], 0.25)
-            #Turn right by pi/4:
+            #Turn left by pi/4:
             ControlR = (-vel[1], vel[1], 0.25)
 
     def GetSuccessors(self, node_id):
