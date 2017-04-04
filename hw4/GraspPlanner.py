@@ -13,6 +13,7 @@ class GraspPlanner(object):
         # Load grasp database
         gmodel = openravepy.databases.grasping.GraspingModel(self.robot, obj)
         if not gmodel.load():
+            print("Generating grasp set.")
             gmodel.autogenerate()
         self.graspindices = self.gmodel.graspindices
         self.grasps = self.gmodel.grasps
@@ -25,17 +26,19 @@ class GraspPlanner(object):
         #  a base pose and associated grasp config for the
         #  grasping the bottle
 
+        # Find best grasps, independent of arm
         for i,grasp in enumerate(self.grasps_ordered):
           print('Evaluated ' + str(i) + '/' + str(len(self.grasps_ordered)))
           grasp[self.graspindices.get('performance')] = self.eval_grasp(grasp)
 
-        # sort! (in decreasing score order; best->worst)
+        # Sort grasps! (in decreasing score order; best->worst)
         order = np.argsort(self.grasps_ordered[:,self.graspindices.get('performance')[0]])
         order = order[::-1]
         self.grasps_ordered = self.grasps_ordered[order]
 
+        #TODO For best grasps, test for reachability and find base pose
         for grasp in self.grasps_ordered:
-            # TODO try reachability here
+            self.show_grasp(grasp)
             pass
 
         ###################################################################
@@ -69,7 +72,7 @@ class GraspPlanner(object):
                 return 0.0
             # print('Rank of G is:', rankG)
 
-            METRIC = 1
+            METRIC = 3
 
             if (METRIC==1):
                 # Metric 1: minimum singular value
@@ -92,13 +95,29 @@ class GraspPlanner(object):
 
             # print(score)
             # self.show_grasp(grasp)
-
             return score
 
           except openravepy.planning_error,e:
             #you get here if there is a failure in planning
             #example: if the hand is already intersecting the object at the initial position/orientation
             return  0.00 # TODO you may want to change this
+
+    def show_grasp(self, grasp, delay=10):
+        "displays the grasp"
+        with openravepy.RobotStateSaver(self.gmodel.robot):
+            with self.gmodel.GripperVisibility(self.gmodel.manip):
+                time.sleep(0.1) # let viewer update?
+                try:
+                    with self.env:
+                        contacts,finalconfig,mindist,volume = self.gmodel.testGrasp(grasp=grasp,translate=True,forceclosure=True)
+                        contactgraph = self.gmodel.drawContacts(contacts) if len(contacts) > 0 else None
+                        self.gmodel.robot.GetController().Reset(0)
+                        self.gmodel.robot.SetDOFValues(finalconfig[0])
+                        self.gmodel.robot.SetTransform(finalconfig[1])
+                        self.env.UpdatePublishedBodies()
+                        time.sleep(delay)
+                except openravepy.planning_error,e:
+                    print 'bad grasp!',e
 
     def PlanToGrasp(self, obj):
 
