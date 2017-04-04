@@ -2,6 +2,7 @@ import numpy, openravepy
 import pylab as pl
 from DiscreteEnvironment import DiscreteEnvironment
 import itertools
+import copy
 class Control(object):
     def __init__(self, omega_left, omega_right, duration):
         self.ul = omega_left
@@ -101,6 +102,13 @@ class SimpleEnvironment(object):
             # TODO: Here you will construct a set of actions
             #  to be used during the planning process
             #
+            L = 0.5 #Distance between wheels for herb
+            r = 0.2 #Radius of the wheel for herb
+            config1 = copy.deepcopy(start_config) #Make a copy of the initial configuration
+            
+           	#Set of Actions:
+           	#Move Forward, Move Backward, Turn left by pi/4, Turn right by pi/4 :: Euclidean distance
+			#Moving Forward by 1 block:
 
 
 
@@ -136,7 +144,7 @@ class SimpleEnvironment(object):
         # by the two node ids
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
-        dist = np.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since omnidirectional
+        dist = np.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
