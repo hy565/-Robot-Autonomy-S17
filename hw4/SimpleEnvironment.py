@@ -166,18 +166,28 @@ class SimpleEnvironment(object):
         #  up the configuration associated with the particular node_id
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
-
+        #candidates = []
+        
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
-        neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
-        neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
-        candidates = [np.array(current_grid) + n for n in np.array(neighbor_gen)]
-        successors = [c for c in candidates
-                        if (np.all(c >= np.array([0]*self.discrete_env.dimension))) and \
-                           (np.all(c <  np.array(self.discrete_env.num_cells)))]
-        #Check for collisions
-        successors = [self.discrete_env.GridCoordToNodeId(s) for s in successors
-                        if not self.RobotIsInCollisionAt(self.discrete_env.GridCoordToConfiguration(s))]
+        current_orientation = current_grid[2]#Get the current orientation
+        current_config = self.discrete_env.NodeIdToConfiguration
+        collision = False #Initialize collision flag as false
+        for action in self.actions[current_orientation]:
+        	for footprint in action.footprint:
+       			if self.RobotIsInCollisionAt(self, footprint):
+       				collision =  True #Set collision flag
+       				break
+       		if not collision:
+       			#candidates = candidates.append(footprint[-1]) #Append the 'snapped' footprint
+       			successors.append(tuple(footprint[-1], action.control)) #Append the 'snapped' footprint and its control
 
+        # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
+        # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
+        # candidates = [np.array(current_grid) + n for n in np.array(neighbor_gen)]
+        # successors = [c for c in candidates
+        #                 if (np.all(c >= np.array([0]*self.discrete_env.dimension))) and \
+        #                    (np.all(c <  np.array(self.discrete_env.num_cells)))]
+        
         return successors
 
 
