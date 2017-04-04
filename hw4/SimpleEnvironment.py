@@ -21,6 +21,7 @@ class SimpleEnvironment(object):
         self.robot = herb.robot
         self.boundary_limits = [[-5., -5., -numpy.pi], [5., 5., numpy.pi]]
         lower_limits, upper_limits = self.boundary_limits
+        
         # self.discrete_env = DiscreteEnvironment(resolution, lower_limits, upper_limits)
 
         # self.resolution = resolution
@@ -105,12 +106,25 @@ class SimpleEnvironment(object):
             L = 0.5 #Distance between wheels for herb
             r = 0.2 #Radius of the wheel for herb
             config1 = copy.deepcopy(start_config) #Make a copy of the initial configuration
-            
+
            	#Set of Actions:
            	#Move Forward, Move Backward, Turn left by pi/4, Turn right by pi/4 :: Euclidean distance
 			#Moving Forward by 1 block:
+			vel = self.discrete_env.resolution #Speed to move is equal to resolution, assuming resolution is less than one
+			
+			#Move Forward from current configuration/pose in the x-direction:
+			ControlF = (vel[1], vel[1], 1)  #wl,wr,time
+			#Move Backward from current configuration/pose in the x-direction:
 
+			#Move Forward from current configuration/pose in the y-direction:
+			ControlF = (vel[2], vel[2], 1)  #wl,wr,time
+			#Move Backward from current configuration/pose in the y-direction:
+			ControlB = (-vel[2], -vel[2], 1)  #wl,wr,time
 
+			#Turn right by pi/4:
+			ControlR = (vel[1], -vel[1], 0.25)
+			#Turn right by pi/4:
+			ControlR = (-vel[1], vel[1], 0.25)
 
     def GetSuccessors(self, node_id):
 
