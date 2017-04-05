@@ -22,8 +22,8 @@ class AStarPlanner(object):
             hGain = 1
         #print hGain
 
-        if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-            self.planning_env.InitializePlot(goal_config)
+        # if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
+        self.planning_env.InitializePlot(goal_config)
 
         # q = deque([])
         q = []
@@ -68,8 +68,8 @@ class AStarPlanner(object):
             last_node_config = self.planning_env.discrete_env.NodeIdToConfiguration(self.nodes[node])
             node_config = self.planning_env.discrete_env.NodeIdToConfiguration(node)
             # idx = self.planning_env.discrete_env.NodeIdToGridCoord(node)[2]
-            # if self.visualize:
-                    # self.planning_env.PlotEdge(last_node_config,node_config, 10/self.planning_env.resolution)
+            if self.visualize:
+                    self.planning_env.PlotEdge(last_node_config,node_config)
                     # self.planning_env.PlotActionFootprints(idx)
 
                 #print "Node popped: ",node
