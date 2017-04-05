@@ -114,39 +114,15 @@ class SimpleEnvironment(object):
             #Move Forward, Move Backward, Turn left by pi/4, Turn right by pi/4 :: Euclidean distance
             #Moving Forward by 1 block:
 
-            # vel = self.discrete_env.resolution #Speed to move is equal to resolution, assuming resolution is less than one
-
-            #For large distances from the goal, increase velocity:
-            # if self.ComputeDistance(start_config,goal_config)>4*resolution[1]:
-            	# vel[1]=4*resolution[1]
-
-            # #Move Forward from current configuration/pose in the x-direction:
-            # ControlF = (vel[1]/(2*L*r*numpy.cos(config1[2])), vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
-            
-            # #Move Backward from current configuration/pose in the x-direction:
-            # ControlB = (-vel[1]/(2*L*r*numpy.cos(config1[2])), -vel[1]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
-            
-            # #Move Forward from current configuration/pose in the y-direction:
-            # ControlF = (vel[2]/(2*L*r*numpy.sin(config[2])), vel[2]/(2*L*r*numpy.sin(config[2])), 1)  #ul,ur,time
-            
-            # #Move Backward from current configuration/pose in the y-direction:
-            # ControlB = (-vel[2]/(2*L*r*numpy.cos(config1[2])), -vel[2]/(2*L*r*numpy.cos(config1[2])), 1)  #ul,ur,time
-
-            # #Turn right by pi/4:
-            # ControlR = (vel[1], -vel[1], 0.25)
-            
-            # #Turn left by pi/4:
-            # ControlR = (-vel[1], vel[1], 0.25)
-
             ##Construct action objects
 
 
             #Move Forward from current configuration/pose in the x-direction:
-            ControlF =  Control(1,1, 1)  #ul,ur,time
+            ControlF =  Control(1,1, 0.1)  #ul,ur,time
             FootprintF =  self.GenerateFootprintFromControl(curr_config, ControlF)
             ActionF =  Action(ControlF, FootprintF)
             #Move Backward from current configuration/pose in the x-direction:
-            ControlB =  Control(1,1, 1)  #ul,ur,time
+            ControlB =  Control(1,1, 0.1)  #ul,ur,time
             FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
             ActionB =  Action(ControlB, FootprintB)
             #Turn CW by pi/4:
@@ -192,7 +168,7 @@ class SimpleEnvironment(object):
         #                 if (numpy.all(c >= numpy.array([0]*self.discrete_env.dimension))) and \
         #                    (numpy.all(c <  numpy.array(self.discrete_env.num_cells)))]
         
-        print successors
+        # print successors
         return successors
 
 
@@ -240,7 +216,7 @@ class SimpleEnvironment(object):
         # If checking collision in point other than current state, move robot
         #  to that point, check collision, then move it back.
         current_state = self.robot.GetTransform()
-        print current_state
+        # print current_state
         check_state = numpy.copy(current_state)
         check_state[:2,3] = point[0:2]
         self.robot.SetTransform(check_state)
