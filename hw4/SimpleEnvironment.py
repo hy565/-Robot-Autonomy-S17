@@ -3,7 +3,6 @@ import pylab as pl
 from DiscreteEnvironment import DiscreteEnvironment
 import itertools
 import copy
-import math
 class Control(object):
     def __init__(self, omega_left, omega_right, duration):
         self.ul = omega_left
@@ -110,8 +109,8 @@ class SimpleEnvironment(object):
             # TODO: Here you will construct a set of actions
             #  to be used during the planning process
             #
-            # L = 0.5 #Distance between wheels for herb
-            # r = 0.25	 #Radius of the wheel for herb
+            L = 0.5 #Distance between wheels for herb
+            r = 0.2 #Radius of the wheel for herb
             curr_config = copy.deepcopy(start_config) #Make a copy of the initial configuration
 
             #Set of Actions:
@@ -119,30 +118,26 @@ class SimpleEnvironment(object):
             #Moving Forward by 1 block:
 
             ##Construct action objects
-            #Move Forward from current configuration/pose:
-            if idx%2==0:
-            	ControlF =  Control(1,1, 0.2)  #ul,ur,time
-            else:
-            	ControlF =  Control(1,1, 0.2*math.sqrt(2))  #ul,ur,time
+
+
+            #Move Forward from current configuration/pose in the x-direction:
+            ControlF =  Control(1,1, 0.2)  #ul,ur,time
             FootprintF =  self.GenerateFootprintFromControl(curr_config, ControlF)
             ActionF =  Action(ControlF, FootprintF)
-            #Move Backward from current configuration/pose:
-            # if idx%2==0:
-            # 	ControlB =  Control(-1,-1, 0.2)  #ul,ur,time
-            # else:
-            # 	ControlB =  Control(-1,-1, 0.2*math.sqrt(2))  #ul,ur,time
-            # FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
-            # ActionB =  Action(ControlB, FootprintB)
-            #Turn CW by pi/2:
-            ControlCW =  Control(1, -1, numpy.pi/4.)
+            #Move Backward from current configuration/pose in the x-direction:
+            ControlB =  Control(-1,-1, 0.2)  #ul,ur,time
+            FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
+            ActionB =  Action(ControlB, FootprintB)
+            #Turn CW by pi/4:
+            ControlCW =  Control(1, -1, numpy.pi/8.)
             FootprintCW =  self.GenerateFootprintFromControl(curr_config, ControlCW)
             ActionCW =  Action(ControlCW, FootprintCW)
-            #Turn CCW by pi/2:
-            ControlCCW =  Control(-1, 1, numpy.pi/4.)
+            #Turn CCW by pi/4:
+            ControlCCW =  Control(-1, 1, numpy.pi/8.)
             FootprintCCW =  self.GenerateFootprintFromControl(curr_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
-            self.actions[idx] = [ActionF, ActionCW, ActionCCW]
+            self.actions[idx] = [ActionF, ActionB, ActionCW, ActionCCW]
             
 
 
@@ -154,23 +149,23 @@ class SimpleEnvironment(object):
         #  up the configuration associated with the particular node_id
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
+        #candidates = []
         
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
         current_orientation = current_grid[2]#Get the current orientation
         current_config = self.discrete_env.NodeIdToConfiguration(node_id)
-        copy_config = copy.deepcopy(current_config)
-
+        
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
             for footprint in action.footprint:
                 test_config = current_config + footprint
-                test_config[2] = current_orientation
+                test_config[2] = max(-numpy.pi, test_config[2])
+                test_config[2] = min(numpy.pi, test_config[2])
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
                 
+
                 # print numpy.array([0]*self.discrete_env.dimension)
                 # print numpy.array(self.discrete_env.num_cells)
-                print '---here---'
-                print test_config
                 if (numpy.any(test_coord < numpy.array([0]*self.discrete_env.dimension)) or (numpy.any(test_coord >=  numpy.array(self.discrete_env.num_cells)))):
                     print "successor footprint out of bounds"
                     collision =  True
@@ -181,9 +176,19 @@ class SimpleEnvironment(object):
                     print "succesor action in collision"
                     break
             if not collision:
+                # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
                 print test_coord, test_config
                 action.footprint[-1] = test_config
+                
                 successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
+        # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
+        # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
+        # candidates = [numpy.array(current_grid) + n for n in numpy.array(neighbor_gen)]
+        # successors = [c for c in candidates
+        #                 if (numpy.all(c >= numpy.array([0]*self.discrete_env.dimension))) and \
+        #                    (numpy.all(c <  numpy.array(self.discrete_env.num_cells)))]
+        
+        # print successors
         return successors
 
 
@@ -221,8 +226,10 @@ class SimpleEnvironment(object):
     def RobotIsInCollisionAt(self, point=None):
         """
         Call self.RobotIsInCollisionAt() to check collision in current state
-             self.RobotIsInCollisionAt(...) to check at another point
+             self.RobotIsInCollisionAt(numpy2darray) to check at another point
         """
+
+        # Point should be a 2D numpy array with the configuration.
         # Leave empty if checking collision at current point
         if point is None:
             return self.robot.GetEnv().CheckCollision(self.robot)
@@ -269,8 +276,10 @@ class SimpleEnvironment(object):
                      bb.pos()[1] + bb.extents()[1],
                      bb.pos()[1] - bb.extents()[1]], 'r')
 
+
         pl.ion()
         pl.show()
+
 
 
     def PlotEdge(self, sconfig, econfig, render_interval = 1):
@@ -278,6 +287,7 @@ class SimpleEnvironment(object):
                 [sconfig[1], econfig[1]],
                 'k.-', linewidth=0.5)
         
+
         self.cnt += 1
         # render_interval = 100/self.resolution
         # render_interval = 1
