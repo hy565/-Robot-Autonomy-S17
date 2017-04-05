@@ -59,7 +59,18 @@ class GraspPlanner(object):
                 grasp_config = grasp_c
                 break
 
+
+        self.base_config = base_pose
         ###################################################################
+
+        #Uncomment to show grasp
+        # self.robot.SetTransform(base_pose)
+        # cur = self.robot.GetDOFValues()
+        # cur[self.manip.GetArmIndices()] = arm_config
+        # self.robot.SetDOFValues(cur)
+        # raw_input("Showing base pose and grasp config")
+
+
         # Convert base_pose to [x,y,theta] form
         T = self.robot.GetTransform()
         R = base_pose[0:3,0:3]
@@ -69,7 +80,7 @@ class GraspPlanner(object):
         print "Final pose: ", base_pose
         # raw_input("Check grasp")
 
-        return base_pose, grasp_config
+        return base_pose, arm_config
 
     def snap_to_discrete(self, pose):
         """
@@ -104,6 +115,7 @@ class GraspPlanner(object):
         success = False
         numfailures = 0
         N = 1
+        original_base = self.robot.GetTransform()
         with self.robot.GetEnv():
             while not success:
                 if (numfailures>3):
@@ -111,6 +123,7 @@ class GraspPlanner(object):
                 poses,jointstate = samplerfn(N)
                 for pose in poses:
                     pose = self.snap_to_discrete(pose)
+
                     self.robot.SetTransform(pose)
                     self.robot.SetDOFValues(*jointstate)
 
@@ -120,10 +133,8 @@ class GraspPlanner(object):
                         if q is not None:
                             print "Success! Found good grasp."
                             self.robot.SetTransform(pose)
-                            cur = self.robot.GetDOFValues()
-                            cur[self.manip.GetArmIndices()] = q
-                            self.robot.SetDOFValues(cur)
                             pose =  self.robot.GetTransform()
+                            self.robot.SetTransform(original_base)
                             success = True
                         else:
                             numfailures += 1
@@ -193,23 +204,27 @@ class GraspPlanner(object):
             print 'Base pose or grasp_config is None.'
             exit()
 
-        # Now plan to the base pose
-        print 'Planning base trajectory'
-        start_pose = np.array(self.base_planner.planning_env.herb.GetCurrentConfiguration())
-        base_plan = self.base_planner.Plan(start_pose, base_pose)
-        base_traj = self.base_planner.planning_env.herb.ConvertPlanToTrajectory(base_plan)
+        raw_input("enter to continue")
+        self.robot.SetTransform(self.base_config)
+        raw_input("Skipping base planning")
 
-        print 'Executing base trajectory'
-        self.base_planner.planning_env.herb.ExecuteTrajectory(base_traj)
+        # Now plan to the base pose
+        # print 'Planning base trajectory'
+        # start_pose = np.array(self.base_planner.planning_env.herb.GetCurrentConfiguration())
+        # base_plan = self.base_planner.Plan(start_pose, base_pose)
+        # base_traj = self.base_planner.planning_env.herb.ConvertPlanToTrajectory(base_plan)
+        #
+        # print 'Executing base trajectory'
+        # self.base_planner.planning_env.herb.ExecuteTrajectory(base_traj)
 
         # Now plan the arm to the grasp configuration
         print 'Planning arm trajectory'
-        start_config = np.array(self.arm_planner.planning_env.herb.GetCurrentConfiguration())
+        start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
         arm_plan = self.arm_planner.Plan(start_config, grasp_config)
-        arm_traj = self.arm_planner.planning_env.herb.ConvertPlanToTrajectory(arm_plan)
+        arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(arm_plan)
 
         print 'Executing arm trajectory'
-        self.arm_planner.planning_env.herb.ExecuteTrajectory(arm_traj)
+        self.arm_planner.planning_env.robot.ExecuteTrajectory(arm_traj)
 
         # Grasp the bottle
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)

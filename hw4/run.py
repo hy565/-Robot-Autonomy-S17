@@ -8,8 +8,8 @@ from SimpleRobot import SimpleRobot
 from SimpleEnvironment import SimpleEnvironment
 from GraspPlanner import GraspPlanner
 import sys
-# from AStarPlanner import AStarPlanner
-# TODO: Import the applicable RRTPlanner
+from AStarPlanner import AStarPlanner
+from RRTPlanner import RRTPlanner
 
 if __name__ == "__main__":
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     # base_planner = AStarPlanner(base_env, visualize = False)
     base_planner = None
-    arm_planner = None
+    arm_planner = RRTPlanner(arm_env, visualize=False)
     # TODO: Here initialize your arm planner
 
     # add a table and move the robot into place
@@ -132,5 +132,5 @@ if __name__ == "__main__":
 
     planner.PlanToGrasp(bottle)
 
-    import IPython
-    IPython.embed()
+    # import IPython
+    # IPython.embed()
