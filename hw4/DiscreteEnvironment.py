@@ -60,7 +60,8 @@ class DiscreteEnvironment(object):
         coord = numpy.divide(offset,self.resolution)
 
         coord = numpy.minimum(coord, numpy.subtract(self.num_cells,1))
-        coord = coord.astype(int)
+        coord = numpy.ceil(coord)
+        # coord = coord.astype(int)
         return coord
 
     def GridCoordToConfiguration(self, coord):
