@@ -160,7 +160,7 @@ class SimpleEnvironment(object):
                     break
             if not collision:
                 # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
-                successors.append(action)
+                successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
         # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
         # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
         # candidates = [numpy.array(current_grid) + n for n in numpy.array(neighbor_gen)]
