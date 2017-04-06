@@ -151,8 +151,6 @@ class SimpleEnvironment(object):
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
             for footprint in action.footprint:
-                # print current_config
-                # print footprint
                 test_config = copy.deepcopy(current_config)
                 test_config += footprint
 
@@ -161,9 +159,6 @@ class SimpleEnvironment(object):
                 if test_config[2] < -numpy.pi:
                     test_config[2] += 2.*numpy.pi
 
-                # test_config[2] = self.wraptopi(test_config[2])
-                # test_config[2] = max(-numpy.pi, test_config[2])
-                # test_config[2] = min(numpy.pi, test_config[2])
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
                 # print "Candidate successor: ", test_coord,
 
@@ -171,29 +166,15 @@ class SimpleEnvironment(object):
                 # print numpy.array(self.discrete_env.num_cells)
                 if (numpy.any(test_coord[0:2] < numpy.array([0]*2))) or (numpy.any(test_coord[0:2] >=  numpy.array(self.discrete_env.num_cells[0:2]))):
                     print test_coord
-                    # print "successor footprint out of bounds"
                     collision =  True
                     break
 
                 if self.RobotIsInCollisionAt(test_config):
                     collision =  True #Set collision flag
-                    # print "succesor action in collision"
                     break
 
             if not collision:
-                # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
-                # print test_coord, test_config,
-                # print "has been added to succesors"
-
-                # action.footprint[-1] = test_config
-
                 successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
-        # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
-        # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
-        # candidates = [numpy.array(current_grid) + n for n in numpy.array(neighbor_gen)]
-        # successors = [c for c in candidates
-        #                 if (numpy.all(c >= numpy.array([0]*self.discrete_env.dimension))) and \
-        #                    (numpy.all(c <  numpy.array(self.discrete_env.num_cells)))]
 
         # print successors
         return successors
@@ -206,7 +187,6 @@ class SimpleEnvironment(object):
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
-
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
         cost = numpy.linalg.norm(start_config[0:2] - goal_config[0:2]) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
@@ -227,23 +207,22 @@ class SimpleEnvironment(object):
         # If checking collision in point other than current state, move robot
         #  to that point, check collision, then move it back.
         # point = self.discrete_env.NodeIdToConfiguration(point)
-        with self.robot.GetEnv():
-            current_state = self.robot.GetTransform()
-            # print current_state
-            check_state = numpy.copy(current_state)
-            T = numpy.copy(current_state)
-            # T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
-            # print T[0:2]
-            # check_state[:2,3] = point[0:2]
-            T[:2,3] = point[0:2]
-            # T[0][3] = point[0]
-            # T[1][3] = point[1]
-            # print T
-            # with self.robot.GetEnv():
-                # self.robot.SetTransform(numpy.dot(check_state, T))
-            self.robot.SetTransform(T)
-            in_collision = self.robot.GetEnv().CheckCollision(self.robot)
-            self.robot.SetTransform(current_state)  # move robot back to current state
+        # with self.robot.GetEnv():
+        current_state = self.robot.GetTransform()
+        # print current_state
+        check_state = numpy.copy(current_state)
+        T = numpy.copy(current_state)
+
+        T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
+        # print T[0:2]
+        # check_state[:2,3] = point[0:2]
+        T[:2,3] = point[0:2]
+        # T[0][3] = point[0]
+        # T[1][3] = point[1]
+        # print T
+        self.robot.SetTransform(T)
+        in_collision = self.robot.GetEnv().CheckCollision(self.robot)
+        self.robot.SetTransform(current_state)  # move robot back to current state
         return in_collision
 
 

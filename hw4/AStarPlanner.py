@@ -43,6 +43,7 @@ class AStarPlanner(object):
 
         #Track number of nodes explored
         num_exp = 0
+        self.a = False
 
         # Remember everything is in node_id!!!
         while open_set:
@@ -73,6 +74,7 @@ class AStarPlanner(object):
             for action in actions:
             	neighbor = action.footprint[-1][0:2] + curr_config[0:2]
                 neighbor = np.concatenate((neighbor, np.array([action.footprint[-1][2]])), axis=0)
+
             	neighbor = self.planning_env.discrete_env.ConfigurationToNodeId(neighbor)
 
                 if (neighbor in closed_set or neighbor in in_collision):
