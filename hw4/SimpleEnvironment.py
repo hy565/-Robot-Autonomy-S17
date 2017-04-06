@@ -63,13 +63,15 @@ class SimpleEnvironment(object):
             timecount += stepsize
 
         # Add one more config that snaps the last point in the footprint to the center of the cell
-        nid = self.discrete_env.ConfigurationToNodeId(config)
-        snapped_config = self.discrete_env.NodeIdToConfiguration(nid)
+        gc = self.discrete_env.ConfigurationToGridCoord(config)
+        snapped_config = self.discrete_env.GridCoordToConfiguration(gc)
+
         snapped_config[:2] -= start_config[:2]
         footprint.append(snapped_config)
         print("start: ", start_config)
         print("last: ", config)
         print("snapped: ", snapped_config)
+        print '-'
 
         return footprint
 
@@ -84,7 +86,7 @@ class SimpleEnvironment(object):
         # print actions
         for idx in range(int(self.discrete_env.num_cells[2])):
             for action in actions[idx]:
-                print action.footprint[-1]
+                # print action.footprint[-1]
                 xpoints = [config[0] for config in action.footprint]
                 ypoints = [config[1] for config in action.footprint]
 
@@ -109,7 +111,6 @@ class SimpleEnvironment(object):
             self.actions[idx] = []
             grid_coordinate[2] = idx
             # print grid_coordinate
-
             start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
             original_pose = self.herb.robot.GetTransform()
 
@@ -132,11 +133,11 @@ class SimpleEnvironment(object):
                 FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
                 ActionF =  Action(ControlF, FootprintF)
             #Turn CW by pi/4:
-            ControlCW =  Control(1, -1, numpy.pi/2.)
+            ControlCW =  Control(1, -1, numpy.pi/4.)
             FootprintCW =  self.GenerateFootprintFromControl(start_config, ControlCW)
             ActionCW =  Action(ControlCW, FootprintCW)
             #Turn CCW by pi/4:
-            ControlCCW =  Control(-1, 1, numpy.pi/2.)
+            ControlCCW =  Control(-1, 1, numpy.pi/4.)
             FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
