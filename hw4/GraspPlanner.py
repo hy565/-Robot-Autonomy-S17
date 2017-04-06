@@ -66,10 +66,11 @@ class GraspPlanner(object):
         #Uncomment to show grasp
         # self.robot.SetTransform(base_pose)
         # cur = self.robot.GetDOFValues()
+        # original = cur
         # cur[self.manip.GetArmIndices()] = arm_config
         # self.robot.SetDOFValues(cur)
         # raw_input("Showing base pose and grasp config")
-
+        # self.robot.SetDOFValues(original)
 
         # Convert base_pose to [x,y,theta] form
         T = self.robot.GetTransform()
@@ -166,7 +167,7 @@ class GraspPlanner(object):
                 return 0.0
             # print('Rank of G is:', rankG)
 
-            METRIC = 3
+            METRIC = 2
 
             if (METRIC==1):
                 # Metric 1: minimum singular value
@@ -228,4 +229,4 @@ class GraspPlanner(object):
 
         # Grasp the bottle
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)
-        task_manipultion.CloseFingers()
+        task_manipulation.CloseFingers()

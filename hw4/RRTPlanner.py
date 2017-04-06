@@ -1,6 +1,4 @@
-import numpy
-import time
-import random
+import numpy as np
 from RRTTree import RRTTree
 
 class RRTPlanner(object):
@@ -9,101 +7,61 @@ class RRTPlanner(object):
         self.planning_env = planning_env
         self.visualize = visualize
 
-    def Plan(self, start_config, goal_config, epsilon = 0.1):
 
-        # set epsilon to 1-3 for Herb
-
-        if (self.planning_env.robot.robot.GetEnv().GetRobot('Herb2')  == self.planning_env.robot.robot):
-            epsilon = 1
-
-        self.tree = RRTTree(self.planning_env, start_config)
+    def Plan(self, start_config, goal_config, epsilon = .2): #.001
+        import time
+        tree = RRTTree(self.planning_env, start_config)
         plan = []
         if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-            self.planning_env.InitializePlot(goal_config)
+           self.planning_env.InitializePlot(goal_config)
 
-        m = start_config
+        endFlag = False
+        start_time = time.clock()
+        while endFlag is False:
+            with self.planning_env.robot.robot.GetEnv():
+                if np.random.rand() <= .2:
+                    config = goal_config
+                else:
+                    config = self.planning_env.GenerateRandomConfiguration()
 
-        start = time.time()
+                vid, vertex = tree.GetNearestVertex(config)
 
-        while (self.planning_env.ComputeDistance(m, goal_config) > epsilon):
+                successConfig = self.planning_env.Extend(vertex, config)
+                #raw_input("")
+                if not np.array_equal(vertex,successConfig):
+                    if self.planning_env.RobotIsInCollisionOnLine(vertex,successConfig) is False:
+                        tree.AddVertex(successConfig)
+                        tree.AddEdge(vid,len(tree.vertices)-1)
+                        #import pdb; pdb.set_trace()
+                        if (self.visualize):
+                            self.planning_env.PlotEdge(successConfig,vertex)
 
-            p = numpy.random.uniform(0,1)
+                #if within a certain distance of goal & path to goal is collision free, end path searching
+                if (self.planning_env.ComputeDistance(successConfig,goal_config) <= epsilon) and (self.planning_env.RobotIsInCollisionOnLine(successConfig,goal_config) is False):
+                    if self.planning_env.RobotIsInCollisionOnLine(vertex,successConfig) is False:
+                        tree.AddEdge(len(tree.vertices)-1,len(tree.vertices))
+                        tree.AddVertex(goal_config)
+                        endFlag = True
+                        print tree.edges;
 
-            goal_sampling_prob = 0.6
+        plan.append(goal_config)
+        idx = tree.edges[max(tree.edges)] #this is the parent of goal
+        while idx:
+            #import pdb;pdb.set_trace() #for debugging
+            plan.append(tree.vertices[idx[0]])
+            idx = tree.edges[idx[0]]
+        #plan.append(start_config)
 
-            if p > goal_sampling_prob:
+        plan = plan[::-1];
+        print "Time: ",time.clock()-start_time
 
-                randconf = self.planning_env.GenerateRandomConfiguration()
-
-            else:
-                randconf = goal_config
-
-            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-                self.planning_env.PlotPoint(randconf)
-
-            v_id, v = self.tree.GetNearestVertex(randconf)
-
-            m = self.planning_env.Extend(v, randconf, 30)
-
-            v_id, v = self.tree.GetNearestVertex(m)
-
-            m_id = self.tree.AddVertex(numpy.array(m))
-
-            self.tree.AddEdge(v_id, m_id)
-
-            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-                self.planning_env.PlotEdge(v, m)
-            # time.sleep(0.5)
-            # plan.append(m)
-
-        goal_id = self.tree.AddVertex(goal_config)
-        self.tree.AddEdge(m_id, goal_id)
-
-        if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-            self.planning_env.PlotEdge(m, goal_config)
-
-
-        currVertex = goal_id
-        while (numpy.all(self.tree.vertices[currVertex] != start_config)):
-
-            plan.insert(0, self.tree.vertices[currVertex])
-            currVertex = self.tree.edges[currVertex]
-
-        plan.insert(0, start_config)
-
-        if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-            self.planning_env.ShowPlan(plan)
-
-        plan_star = self.planning_env.ShortenPath(plan)
-
-        if len(plan_star) < len(plan):
-            print "shorter path found!"
-            if self.visualize and hasattr(self.planning_env, 'InitializePlot'):
-                self.planning_env.ShowPlan(plan_star, 'g')
-
-
-        # plan.append(goal_config)
-        self.path = plan
-        self.path_star = plan_star
-
-        # print self.tree.edges
-        # print plan_star
-        elapsed = time.time() - start
-
-        print elapsed
-        print self.getCost(plan)
-
-        print len(self.tree.vertices)
-        # print self.getCost(numpy.array(plan_star))
-        # print len(plan_star)
         return plan
 
-
-    def getCost(self,plan):
-
-        sumdist = 0
-        for i in range(len(plan)-1):
-
-            dist = self.planning_env.ComputeDistance(plan[i], plan[i+1])
-            sumdist += dist
-        return sumdist
+    def FindMinIn(Q, dist):
+        min_dist = 9999
+        u = 0
+        for index,node in enumerate(Q):
+            if (dist[index] < min_dist):
+                min_dist = dist[index]
+                u = index
+        return u
