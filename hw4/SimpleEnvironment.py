@@ -70,20 +70,23 @@ class SimpleEnvironment(object):
 
         return footprint
 
-    def PlotActionFootprints(self, idx):
-
-        actions = self.actions[idx]
+    # def PlotActionFootprints(self, idx):
+    def PlotActionFootprints(self):
+        actions = self.actions
         fig = pl.figure()
         lower_limits, upper_limits = self.boundary_limits
         pl.xlim([lower_limits[0], upper_limits[0]])
         pl.ylim([lower_limits[1], upper_limits[1]])
 
         # print actions
-        for action in actions:
-            # print action
-            xpoints = [config[0] for config in action.footprint]
-            ypoints = [config[1] for config in action.footprint]
-            pl.plot(xpoints, ypoints, 'k')
+        for idx in range(int(self.discrete_env.num_cells[2])):
+            for action in actions[idx]:
+                print action.footprint[-1]
+                xpoints = [config[0] for config in action.footprint]
+                ypoints = [config[1] for config in action.footprint]
+
+                pl.plot(xpoints, ypoints, 'k')
+                pl.plot(action.footprint[-1][0], action.footprint[-1][1],'.r')
 
         pl.ion()
         pl.show()
@@ -108,36 +111,28 @@ class SimpleEnvironment(object):
 
             # TODO: Here you will construct a set of actions
             #  to be used during the planning process
-            #
-            L = 0.5 #Distance between wheels for herb
-            r = 0.2 #Radius of the wheel for herb
-            curr_config = copy.deepcopy(start_config) #Make a copy of the initial configuration
 
             #Set of Actions:
-            #Move Forward, Move Backward, Turn left by pi/4, Turn right by pi/4 :: Euclidean distance
-            #Moving Forward by 1 block:
-
             ##Construct action objects
 
-
             #Move Forward from current configuration/pose in the x-direction:
-            ControlF =  Control(1,1, 0.2)  #ul,ur,time
-            FootprintF =  self.GenerateFootprintFromControl(curr_config, ControlF)
+            ControlF =  Control(1,1, 0.5)  #ul,ur,time
+            FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
             ActionF =  Action(ControlF, FootprintF)
             #Move Backward from current configuration/pose in the x-direction:
-            ControlB =  Control(-1,-1, 0.2)  #ul,ur,time
-            FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
-            ActionB =  Action(ControlB, FootprintB)
+            # ControlB =  Control(-1,-1, 0.2)  #ul,ur,time
+            # FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
+            # ActionB =  Action(ControlB, FootprintB)
             #Turn CW by pi/4:
-            ControlCW =  Control(1, -1, numpy.pi/8.)
-            FootprintCW =  self.GenerateFootprintFromControl(curr_config, ControlCW)
+            ControlCW =  Control(1, -1, numpy.pi/4.)
+            FootprintCW =  self.GenerateFootprintFromControl(start_config, ControlCW)
             ActionCW =  Action(ControlCW, FootprintCW)
             #Turn CCW by pi/4:
-            ControlCCW =  Control(-1, 1, numpy.pi/8.)
-            FootprintCCW =  self.GenerateFootprintFromControl(curr_config, ControlCCW)
+            ControlCCW =  Control(-1, 1, numpy.pi/4.)
+            FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
-            self.actions[idx] = [ActionF, ActionB, ActionCW, ActionCCW]
+            self.actions[idx] = [ActionF, ActionCW, ActionCCW]
             
 
 
@@ -166,7 +161,7 @@ class SimpleEnvironment(object):
 
                 # print numpy.array([0]*self.discrete_env.dimension)
                 # print numpy.array(self.discrete_env.num_cells)
-                if (numpy.any(test_coord < numpy.array([0]*self.discrete_env.dimension)) or (numpy.any(test_coord >=  numpy.array(self.discrete_env.num_cells)))):
+                if (numpy.any(test_coord[0:2] < numpy.array([0]*2))) or (numpy.any(test_coord[0:2] >=  numpy.array(self.discrete_env.num_cells[0:2]))):
                     print "successor footprint out of bounds"
                     collision =  True
                     break
@@ -236,20 +231,24 @@ class SimpleEnvironment(object):
 
         # If checking collision in point other than current state, move robot
         #  to that point, check collision, then move it back.
+        # point = self.discrete_env.NodeIdToConfiguration(point)
+
         current_state = self.robot.GetTransform()
         # print current_state
         check_state = numpy.copy(current_state)
-        T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
+        T = numpy.copy(current_state)
+        # T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
         # print T[0:2]
         # check_state[:2,3] = point[0:2]
-        T[0][3] = point[0]
-        T[1][3] = point[1]
+        T[:2,3] = point[0:2]
+        # T[0][3] = point[0]
+        # T[1][3] = point[1]
         # print T
-        with self.robot.GetEnv():
-            self.robot.SetTransform(numpy.dot(check_state, T))
-
-            in_collision = self.robot.GetEnv().CheckCollision(self.robot)
-            self.robot.SetTransform(current_state)  # move robot back to current state
+        # with self.robot.GetEnv():
+            # self.robot.SetTransform(numpy.dot(check_state, T))
+        self.robot.SetTransform(T)
+        in_collision = self.robot.GetEnv().CheckCollision(self.robot)
+        self.robot.SetTransform(current_state)  # move robot back to current state
         return in_collision
 
 

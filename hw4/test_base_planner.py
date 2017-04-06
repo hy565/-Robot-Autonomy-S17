@@ -64,14 +64,16 @@ if __name__ == "__main__":
 
     herb_base.SetCurrentConfiguration(start_config)
 
-    planner = AStarPlanner(base_env, visualize=True)
-    
-    plan = planner.Plan(start_config, goal_config)
-    traj = herb_base.ConvertPlanToTrajectory(plan)
-
     import IPython
     IPython.embed()
 
+    # planner = AStarPlanner(base_env, visualize=True)
+    
+    # plan = planner.Plan(start_config, goal_config)
+    # traj = herb_base.ConvertPlanToTrajectory(plan)
+
+
+    
 
     # raw_input('Press any key to play trajectory')
     # herb_base.ExecuteTrajectory(traj)
