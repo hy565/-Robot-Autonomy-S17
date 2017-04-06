@@ -51,7 +51,6 @@ if __name__ == "__main__":
     hstart = openravepy.misc.DrawAxes(env, tstart)
     hstart.SetShow(True)
 
-
     # raw_input('Move robot to goal config and press enter')
     gid = base_env.discrete_env.ConfigurationToNodeId(herb_base.GetCurrentConfiguration())
     # goal_config = base_env.discrete_env.NodeIdToConfiguration(gid)

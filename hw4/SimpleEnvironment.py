@@ -67,6 +67,9 @@ class SimpleEnvironment(object):
         snapped_config = self.discrete_env.NodeIdToConfiguration(nid)
         snapped_config[:2] -= start_config[:2]
         footprint.append(snapped_config)
+        print("start: ", start_config)
+        print("last: ", config)
+        print("snapped: ", snapped_config)
 
         return footprint
 
@@ -99,13 +102,15 @@ class SimpleEnvironment(object):
 
         wc = [0., 0., 0.]
         grid_coordinate = self.discrete_env.ConfigurationToGridCoord(wc)
+        start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
+
+        original_pose = self.herb.robot.GetTransform()
 
         # Iterate through each possible starting orientation
         for idx in range(int(self.discrete_env.num_cells[2])):
             self.actions[idx] = []
             grid_coordinate[2] = idx
             # print grid_coordinate
-            start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
 
             # TODO: Here you will construct a set of actions
             #  to be used during the planning process
@@ -126,37 +131,33 @@ class SimpleEnvironment(object):
                 FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
                 ActionF =  Action(ControlF, FootprintF)
             #Turn CW by pi/4:
-            ControlCW =  Control(1, -1, numpy.pi/4.)
+            ControlCW =  Control(1, -1, numpy.pi/2.)
             FootprintCW =  self.GenerateFootprintFromControl(start_config, ControlCW)
             ActionCW =  Action(ControlCW, FootprintCW)
             #Turn CCW by pi/4:
-            ControlCCW =  Control(-1, 1, numpy.pi/4.)
+            ControlCCW =  Control(-1, 1, numpy.pi/2.)
             FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
             # raw_input("we're gonna try the actions now")
-            # # print("actionf")
-            # # print self.herb.robot.GetTransform()/
+            # raw_input("actionf")
             # base_traj = self.herb.ConvertPlanToTrajectory([ActionF])
             # self.herb.ExecuteTrajectory(base_traj)
             # raw_input("?")
+            # self.herb.robot.SetTransform(original_pose)
             #
-            # print("actioncw")
-            # # print self.herb.robot.GetTransform()/
+            # raw_input("actioncw")
             # base_traj = self.herb.ConvertPlanToTrajectory([ActionCCW])
             # self.herb.ExecuteTrajectory(base_traj)
             # raw_input("?")
+            # self.herb.robot.SetTransform(original_pose)
             #
-            #
-            # print("actionccw")
-            # # print self.herb.robot.GetTransform()/
+            # raw_input("actionccw")
             # base_traj = self.herb.ConvertPlanToTrajectory([ActionCW])
             # self.herb.ExecuteTrajectory(base_traj)
             # raw_input("?")
+            # self.herb.robot.SetTransform(original_pose)
 
-            # self.herb.robot.GetTransform()
-            # base_traj = self.herb.ConvertPlanToTrajectory([ActionF])
-            # self..herb.ExecuteTrajectory(base_traj)
 
             self.actions[idx] = [ActionF, ActionCW, ActionCCW]
 

@@ -26,7 +26,7 @@ class DiscreteEnvironment(object):
             self.page = numpy.prod(self.dim_size[0:-1])
 
     def ConfigurationToNodeId(self, config):
-        
+
         # TODO:
         # This function maps a node configuration in full configuration
         # space to a node in discrete space
@@ -36,26 +36,26 @@ class DiscreteEnvironment(object):
         return node_id
 
     def NodeIdToConfiguration(self, nid):
-        
+
         # TODO:
         # This function maps a node in discrete space to a configuraiton
         # in the full configuration space
         #
         if nid < 0 or nid > numpy.prod(self.num_cells)-1 :
             return None
-        
+
         coord = self.NodeIdToGridCoord(nid)
         config = self.GridCoordToConfiguration(coord)
         return config
-        
+
     def ConfigurationToGridCoord(self, config):
-        
+
         # TODO:
         # This function maps a configuration in the full configuration space
         # to a grid coordinate in discrete space
         #
         config = numpy.array(config).astype(float)
-        
+
         offset = numpy.subtract(config,self.lower_limits)
         coord = numpy.divide(offset,self.resolution)
 
@@ -65,14 +65,14 @@ class DiscreteEnvironment(object):
         return coord
 
     def GridCoordToConfiguration(self, coord):
-        
+
         # TODO:
         # This function smaps a grid coordinate in discrete space
         # to a configuration in the full configuration space
         #
         coord = numpy.array(coord).astype(float)
         config = self.lower_limits + numpy.multiply(coord,self.resolution)
-        
+
         # for dim in range(0, len(coord)):
         #     if coord[dim] == self.num_cells[dim]-1:
         #         config[dim] += (self.upper_limits[dim]-config[dim])/2
@@ -82,27 +82,26 @@ class DiscreteEnvironment(object):
         return config
 
     def GridCoordToNodeId(self,coord):
-        
+
         # TODO:
         # This function maps a grid coordinate to the associated
-        # node id 
+        # node id
         node_id = self.my_ravel(coord)
         return int(node_id)
 
     def NodeIdToGridCoord(self, node_id):
-        
+
         # TODO:
         # This function maps a node id to the associated
         # grid coordinate
         if node_id < 0 or node_id > numpy.prod(self.num_cells)-1 :
             return None
-        
+
         return numpy.array(numpy.unravel_index(node_id, dims = self.dim_size, order='F'))
-        
+
     def my_ravel(self, coord):
     	if len(coord)==1:
     		return int(coord[0])
 	else:
 		page = numpy.prod(self.dim_size[0:len(coord)-1])
 		return int(coord[-1]*page+ self.my_ravel(coord[0:-1]))
-        
