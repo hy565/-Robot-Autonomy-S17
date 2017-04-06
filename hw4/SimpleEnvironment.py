@@ -164,7 +164,13 @@ class SimpleEnvironment(object):
                 test_config = copy.deepcopy(current_config)
                 test_config += footprint
 
-                test_config[2] = self.wraptopi(test_config[2])
+
+                if test_config[2] > numpy.pi:
+                    test_config[2] -= 2.*numpy.pi
+                if test_config[2] < -numpy.pi:
+                    test_config[2] += 2.*numpy.pi
+
+                # test_config[2] = self.wraptopi(test_config[2])
                 # test_config[2] = max(-numpy.pi, test_config[2])
                 # test_config[2] = min(numpy.pi, test_config[2])
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
@@ -309,8 +315,3 @@ class SimpleEnvironment(object):
 
             pl.draw()
             self.cnt = 0
-
-    def wraptopi(self, x):
-        pi = numpy.pi
-        x = x - numpy.floor(x/(2*pi)) *2 *pi
-        return x
