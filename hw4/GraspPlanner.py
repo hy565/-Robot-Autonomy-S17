@@ -70,7 +70,6 @@ class GraspPlanner(object):
         # cur[self.manip.GetArmIndices()] = arm_config
         # self.robot.SetDOFValues(cur)
         # raw_input("Showing base pose and grasp config")
-        # self.robot.SetDOFValues(original)
 
         # Convert base_pose to [x,y,theta] form
         T = self.robot.GetTransform()

@@ -56,7 +56,7 @@ class HerbEnvironment(object):
         #Start configuration to waypoint 1; check for collision, repeat for waypoint 2, 3 and so on till collision occurs/end_config is reached
         for ms in range (1, waypoints):
             # Make sure it we don't extend too far
-            epsilon = 3.0
+            epsilon = 2.0
             if (self.ComputeDistance(start_config, last_successful_config)>epsilon):
                 return last_successful_config
 

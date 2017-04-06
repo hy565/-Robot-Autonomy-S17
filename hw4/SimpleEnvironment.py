@@ -133,7 +133,7 @@ class SimpleEnvironment(object):
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
             self.actions[idx] = [ActionF, ActionCW, ActionCCW]
-            
+
 
 
     def GetSuccessors(self, node_id):
@@ -145,11 +145,11 @@ class SimpleEnvironment(object):
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
         #candidates = []
-        
+
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
         current_orientation = current_grid[2]#Get the current orientation
         current_config = self.discrete_env.NodeIdToConfiguration(node_id)
-        
+
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
             for footprint in action.footprint:
@@ -157,7 +157,7 @@ class SimpleEnvironment(object):
                 test_config[2] = max(-numpy.pi, test_config[2])
                 test_config[2] = min(numpy.pi, test_config[2])
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
-                
+
 
                 # print numpy.array([0]*self.discrete_env.dimension)
                 # print numpy.array(self.discrete_env.num_cells)
@@ -174,7 +174,7 @@ class SimpleEnvironment(object):
                 # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
                 print test_coord, test_config
                 action.footprint[-1] = test_config
-                
+
                 successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
         # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
         # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
@@ -182,7 +182,7 @@ class SimpleEnvironment(object):
         # successors = [c for c in candidates
         #                 if (numpy.all(c >= numpy.array([0]*self.discrete_env.dimension))) and \
         #                    (numpy.all(c <  numpy.array(self.discrete_env.num_cells)))]
-        
+
         # print successors
         return successors
 
@@ -232,23 +232,23 @@ class SimpleEnvironment(object):
         # If checking collision in point other than current state, move robot
         #  to that point, check collision, then move it back.
         # point = self.discrete_env.NodeIdToConfiguration(point)
-
-        current_state = self.robot.GetTransform()
-        # print current_state
-        check_state = numpy.copy(current_state)
-        T = numpy.copy(current_state)
-        # T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
-        # print T[0:2]
-        # check_state[:2,3] = point[0:2]
-        T[:2,3] = point[0:2]
-        # T[0][3] = point[0]
-        # T[1][3] = point[1]
-        # print T
-        # with self.robot.GetEnv():
-            # self.robot.SetTransform(numpy.dot(check_state, T))
-        self.robot.SetTransform(T)
-        in_collision = self.robot.GetEnv().CheckCollision(self.robot)
-        self.robot.SetTransform(current_state)  # move robot back to current state
+        with self.robot.GetEnv():
+            current_state = self.robot.GetTransform()
+            # print current_state
+            check_state = numpy.copy(current_state)
+            T = numpy.copy(current_state)
+            # T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
+            # print T[0:2]
+            # check_state[:2,3] = point[0:2]
+            T[:2,3] = point[0:2]
+            # T[0][3] = point[0]
+            # T[1][3] = point[1]
+            # print T
+            # with self.robot.GetEnv():
+                # self.robot.SetTransform(numpy.dot(check_state, T))
+            self.robot.SetTransform(T)
+            in_collision = self.robot.GetEnv().CheckCollision(self.robot)
+            self.robot.SetTransform(current_state)  # move robot back to current state
         return in_collision
 
 
@@ -285,12 +285,12 @@ class SimpleEnvironment(object):
         pl.plot([sconfig[0], econfig[0]],
                 [sconfig[1], econfig[1]],
                 'k.-', linewidth=0.5)
-        
+
 
         self.cnt += 1
         # render_interval = 100/self.resolution
         # render_interval = 1
         if self.cnt > render_interval:
-            
+
             pl.draw()
             self.cnt = 0
