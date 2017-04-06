@@ -16,7 +16,7 @@ class SimpleRobot(object):
         return numpy.array(pose)
 
     def SetCurrentConfiguration(self, config):
-        
+
         transform = [[numpy.cos(config[2]), -numpy.sin(config[2]), 0, config[0]],
                      [numpy.sin(config[2]),  numpy.cos(config[2]), 0, config[1]],
                      [0, 0, 1, 0],
@@ -28,7 +28,7 @@ class SimpleRobot(object):
         return plan
 
     def ExecuteTrajectory(self, traj, stepsize = 0.01):
-        
+
         # Send the trajectory to the controller and wait for execution to complete
         offset = None
         for action in traj:
@@ -39,4 +39,3 @@ class SimpleRobot(object):
                 new_config[:2] += config[:2]
                 self.SetCurrentConfiguration(new_config)
                 time.sleep(0.001)
-

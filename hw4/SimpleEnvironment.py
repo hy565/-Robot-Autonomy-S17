@@ -122,7 +122,7 @@ class SimpleEnvironment(object):
                 ActionF =  Action(ControlF, FootprintF)
             else:
                 # print 'Straight ahead'
-                ControlF =  Control(1,1, 0.4)  #ul,ur,time
+                ControlF =  Control(1, 1, 0.4)  #ul,ur,time
                 FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
                 ActionF =  Action(ControlF, FootprintF)
             #Turn CW by pi/4:
@@ -133,6 +133,30 @@ class SimpleEnvironment(object):
             ControlCCW =  Control(-1, 1, numpy.pi/4.)
             FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
+
+            # raw_input("we're gonna try the actions now")
+            # # print("actionf")
+            # # print self.herb.robot.GetTransform()/
+            # base_traj = self.herb.ConvertPlanToTrajectory([ActionF])
+            # self.herb.ExecuteTrajectory(base_traj)
+            # raw_input("?")
+            #
+            # print("actioncw")
+            # # print self.herb.robot.GetTransform()/
+            # base_traj = self.herb.ConvertPlanToTrajectory([ActionCCW])
+            # self.herb.ExecuteTrajectory(base_traj)
+            # raw_input("?")
+            #
+            #
+            # print("actionccw")
+            # # print self.herb.robot.GetTransform()/
+            # base_traj = self.herb.ConvertPlanToTrajectory([ActionCW])
+            # self.herb.ExecuteTrajectory(base_traj)
+            # raw_input("?")
+
+            # self.herb.robot.GetTransform()
+            # base_traj = self.herb.ConvertPlanToTrajectory([ActionF])
+            # self..herb.ExecuteTrajectory(base_traj)
 
             self.actions[idx] = [ActionF, ActionCW, ActionCCW]
 
@@ -169,10 +193,6 @@ class SimpleEnvironment(object):
                     collision =  True
                     break
 
-                if self.RobotIsInCollisionAt(test_config):
-                    collision =  True #Set collision flag
-                    break
-
             if not collision:
                 successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
 
@@ -183,7 +203,7 @@ class SimpleEnvironment(object):
     def ComputeDistance(self, start_id, end_id):
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
-        dist = numpy.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
+        dist = numpy.linalg.norm(start_config[0:2] - end_config[0:2]) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):

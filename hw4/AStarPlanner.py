@@ -54,7 +54,6 @@ class AStarPlanner(object):
                 # self.planning_env.PlotEdgeWithID(camefrom[current], current)
                 self.planning_env.PlotEdge(self.planning_env.discrete_env.NodeIdToConfiguration(camefrom[current]), self.planning_env.discrete_env.NodeIdToConfiguration(current))
 
-
             if (np.all(self.planning_env.discrete_env.NodeIdToGridCoord(current)[0:2] == self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[0:2])):
                 self.a = True
                 print "Almost there!"
