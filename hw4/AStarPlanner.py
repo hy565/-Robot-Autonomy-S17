@@ -118,10 +118,10 @@ class AStarPlanner(object):
 
         for i in range(abs(self.r)):
             if self.r < 0: #need to turn counter-clockwise
-                plan.append(self.planning_env.actions[0][3])
+                plan.append(self.planning_env.actions[0][2])
 
             else: # turn clockwise
-                plan,append(self.planning_env.actions[0][2])
+                plan,append(self.planning_env.actions[0][1])
         # if self.visualize:
         #     self.planning_env.PlotEdgeWithID(camefrom[goal_id], goal_id)
         plan_len = 0
