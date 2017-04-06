@@ -53,7 +53,24 @@ class AStarPlanner(object):
                 # self.planning_env.PlotEdgeWithID(camefrom[current], current)
                 self.planning_env.PlotEdge(self.planning_env.discrete_env.NodeIdToConfiguration(camefrom[current]), self.planning_env.discrete_env.NodeIdToConfiguration(current))
 
+            
+            if (np.all(self.planning_env.discrete_env.NodeIdToGridCoord(current)[0:2] == self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[0:2])):
+                self.a = True
+                print "Almost there!"
+                print self.planning_env.discrete_env.NodeIdToGridCoord(goal_id), self.planning_env.discrete_env.NodeIdToGridCoord(current)
+                self.r = (self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[2] -  self.planning_env.discrete_env.NodeIdToGridCoord(current)[2])
+                print "Rotations left: ", self.r
+                break
+
+
+                self.actions[current] = action
+                # camefrom[neighbor] = current
+                # current = goal_id
+
+
+
             if (current == goal_id):
+            
                 break # reconstruct path and return
             closed_set[current] = True;
 
@@ -61,8 +78,10 @@ class AStarPlanner(object):
 
 
             for action in neighbors:
-            	neighbor = action.footprint[-1] + self.planning_env.discrete_env.NodeIdToConfiguration(current)
+                curr_config = self.planning_env.discrete_env.NodeIdToConfiguration(current)
+            	neighbor = action.footprint[-1] + curr_config
 
+                neighbor[2] = action.footprint[-1][2]
             	neighbor = self.planning_env.discrete_env.ConfigurationToNodeId(neighbor)
 
                 if (neighbor in closed_set or neighbor in in_collision):
@@ -97,24 +116,38 @@ class AStarPlanner(object):
                 dists[neighbor] = dist2node
 
         #If open_set ran out before reaching goal
-        if (current!=goal_id):
+        if (current!=goal_id) and not self.a:
             print "Planning failed. Couldn't find a valid path."
             import IPython
             IPython.embed()
             sys.exit()
 
         # Reconstruct path as list
-        plan = [self.actions[goal_id]]    # If planning succeeded, current==goal
+
+        # plan = [self.actions[goal_id]]    # If planning succeeded, current==goal
+        plan = []
+
+        for i in range(abs(self.r)):
+            if self.r < 0: #need to turn counter-clockwise
+                plan.append(self.planning_env.actions[0][3])
+
+            else: # turn clockwise
+                plan,append(self.planning_env.actions[0][2])
         # if self.visualize:
         #     self.planning_env.PlotEdgeWithID(camefrom[goal_id], goal_id)
         plan_len = 0
         while (current != start_id):
+
             current = camefrom[current]
             # if self.visualize:
             #     self.planning_env.PlotEdgeWithID(camefrom[current], current)
             # plan.append(self.planning_env.discrete_env.NodeIdToConfiguration(current))
-            plan.append(self.actions[current])
+            try:
+                plan.append(self.actions[current])
+            except:
+                break
             plan_len += 1
+            # print plan_len
         # plan.append(start_config)
 
         plan.reverse()
@@ -123,15 +156,15 @@ class AStarPlanner(object):
         # Convert plan to numpy array
         #  of dimension k x n where k is the number of waypoints
         #  and n is the dimension of the robots configuration space
-        plan_array = np.array([plan[0]])
-        for i in range(1,len(plan)):
-            plan_array = np.concatenate((plan_array,np.array([plan[i]])), axis=0)
+        # plan_array = np.array([plan[0]])
+        # for i in range(1,len(plan)):
+            # plan_array = np.concatenate((plan_array,np.array([plan[i]])), axis=0)
 
         # Report statistics
-        #print 'Final plan', plan
-        print 'Path length: ', self.planning_env.ComputeDistancePath(plan)
+        print 'Final plan', plan
+        # print 'Path length: ', self.planning_env.ComputeDistancePath(plan)
 
         print 'Plan time: ', end_time - start_time
         print '# nodes expanded: ', num_exp
 
-        return plan_array
+        return plan
