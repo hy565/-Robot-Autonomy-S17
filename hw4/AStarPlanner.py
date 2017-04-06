@@ -61,7 +61,8 @@ class AStarPlanner(object):
 
 
             for action in neighbors:
-            	neighbor = action.footprint[-1]
+            	neighbor = action.footprint[-1] + self.planning_env.discrete_env.NodeIdToConfiguration(current)
+
             	neighbor = self.planning_env.discrete_env.ConfigurationToNodeId(neighbor)
 
                 if (neighbor in closed_set or neighbor in in_collision):
@@ -98,6 +99,8 @@ class AStarPlanner(object):
         #If open_set ran out before reaching goal
         if (current!=goal_id):
             print "Planning failed. Couldn't find a valid path."
+            import IPython
+            IPython.embed()
             sys.exit()
 
         # Reconstruct path as list
