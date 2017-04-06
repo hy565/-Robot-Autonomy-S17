@@ -102,15 +102,16 @@ class SimpleEnvironment(object):
 
         wc = [0., 0., 0.]
         grid_coordinate = self.discrete_env.ConfigurationToGridCoord(wc)
-        start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
 
-        original_pose = self.herb.robot.GetTransform()
 
         # Iterate through each possible starting orientation
         for idx in range(int(self.discrete_env.num_cells[2])):
             self.actions[idx] = []
             grid_coordinate[2] = idx
             # print grid_coordinate
+
+            start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
+            original_pose = self.herb.robot.GetTransform()
 
             # TODO: Here you will construct a set of actions
             #  to be used during the planning process
@@ -138,26 +139,6 @@ class SimpleEnvironment(object):
             ControlCCW =  Control(-1, 1, numpy.pi/2.)
             FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
-
-            # raw_input("we're gonna try the actions now")
-            # raw_input("actionf")
-            # base_traj = self.herb.ConvertPlanToTrajectory([ActionF])
-            # self.herb.ExecuteTrajectory(base_traj)
-            # raw_input("?")
-            # self.herb.robot.SetTransform(original_pose)
-            #
-            # raw_input("actioncw")
-            # base_traj = self.herb.ConvertPlanToTrajectory([ActionCCW])
-            # self.herb.ExecuteTrajectory(base_traj)
-            # raw_input("?")
-            # self.herb.robot.SetTransform(original_pose)
-            #
-            # raw_input("actionccw")
-            # base_traj = self.herb.ConvertPlanToTrajectory([ActionCW])
-            # self.herb.ExecuteTrajectory(base_traj)
-            # raw_input("?")
-            # self.herb.robot.SetTransform(original_pose)
-
 
             self.actions[idx] = [ActionF, ActionCW, ActionCCW]
 
