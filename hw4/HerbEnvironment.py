@@ -96,7 +96,7 @@ class HerbEnvironment(object):
         #  to that point, check collision, then move it back.
         current_state = self.robot.robot.GetDOFValues()
         check_state = numpy.copy(current_state)
-        check_state[0:7] = point
+        check_state[self.robot.robot.GetActiveDOFIndices()] = point
 
         self.robot.robot.SetDOFValues(check_state, range(len(current_state)), openravepy.KinBody.CheckLimitsAction.Nothing)  # move robot to state to check
 

@@ -42,11 +42,12 @@ class GraspPlanner(object):
         order = order[::-1]
         self.grasps_ordered = self.grasps_ordered[order]
 
-
-        original = self.robot.GetTransform()
-
+        success = False
         # Go through sorted graspset and find one that works
         for i, grasp in enumerate(self.grasps_ordered):
+            if success:
+                break;
+
             print "Checking grasp #", i, "/", len(self.grasps_ordered)
 
             #Find grasp configuration
@@ -54,25 +55,35 @@ class GraspPlanner(object):
 
             # Test validity of grasp
             densityfn,samplerfn,bounds = self.robot.irmodel.computeBaseDistribution(grasp_c)
-            arm_config, pose = self.test_grasp(grasp_c, densityfn,samplerfn,bounds)
+            goals = self.test_grasp(grasp_c, densityfn,samplerfn,bounds, grasp_c)
 
             # Check if it works
-            if arm_config is not None:
-                base_pose = pose
-                # self.robot.SetTransform(base_pose)
-                # start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
-                # arm_plan = self.arm_planner.Plan(start_config, arm_config)
-                # if arm_plan==0:
-                #     continue
-                # else:
-                #     self.arm_plan = arm_plan
-                #     break
+            # original = self.robot.GetDOFValues()
+            for ind,goal in enumerate(goals):
+                # raw_input('press ENTER to show goal %d'%ind)
                 # with self.robot.GetEnv():
-                    # with self.robot.CreateRobotStateSaver():
+                #     with self.robot.CreateRobotStateSaver():
+                Tgrasp,pose,values = goal
 
-        ###################################################################
+                arm_config = values[self.robot.GetActiveDOFIndices()]
+                start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
+                arm_plan = self.arm_planner.Plan(start_config, arm_config)
+                if arm_plan==0:
+                    continue
+                else:
+                    print "RRT found path."
+                    self.arm_plan = arm_plan
+                    success = True
+                    base_pose = pose
+                    arm_config = arm_config
+                    break
+
+    #
+    # raw_input('press ENTER to show goal %d'%ind)
+    # Tgrasp,pose,values = goal
+    # self.robot.SetTransform(pose)
+    # self.robot.SetDOFValues(values)
         self.base_config = base_pose
-
 
         # #Uncomment to show grasp
         # self.robot.SetTransform(base_pose)
@@ -83,6 +94,7 @@ class GraspPlanner(object):
         # raw_input("Showing base pose and grasp config")
 
         # Convert base_pose to [x,y,theta] form
+        original = self.robot.GetTransform()
         self.robot.SetTransform(base_pose)
         T = self.robot.GetTransform()
         self.robot.SetTransform(original)
@@ -128,47 +140,54 @@ class GraspPlanner(object):
 
         return snapped_pose
 
-    def test_grasp(self,grasp_config,densityfn,samplerfn,bounds):
-        success = False
+    def test_grasp(self,grasp_config,densityfn,samplerfn,bounds,Tgrasp):
+        goals = []
         numfailures = 0
+        starttime = time.time()
+        timeout = 5
         N = 3
-        original_base = self.robot.GetTransform()
-        with self.robot.GetEnv():
-            with self.robot.CreateRobotStateSaver():
-                while not success:
-                    if (numfailures>5):
-                        break
-                    poses,jointstate = samplerfn(N)
-                    for pose in poses:
-                        q = None
-                        pose = self.snap_to_discrete(pose)
-
-                        self.robot.SetTransform(pose)
-                        self.robot.SetDOFValues(*jointstate)
-
-                        # validate that base is not in collision
-                        if not self.env.CheckCollision(self.robot):
-                            q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
-                            if q is not None:
-                                print "Found valid grasp."
-
-                                self.robot.SetTransform(pose)
-                                start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
-                                arm_plan = self.arm_planner.Plan(start_config, q)
-                                if arm_plan==0:
-                                    num_failures +=
-                                    continue
-                                else:
-                                    self.arm_plan = arm_plan
-                                    break
-                                success = True
-                                break
-                            else:
-                                numfailures += 1
-                        else:
+        with self.robot:
+            while len(goals) < N:
+                if time.time()-starttime > timeout:
+                    break
+                poses,jointstate = samplerfn(N-len(goals))
+                for pose in poses:
+                    self.robot.SetTransform(pose)
+                    self.robot.SetDOFValues(*jointstate)
+                    # validate that base is not in collision
+                    if not self.env.CheckCollision(self.robot):
+                        q = self.manip.FindIKSolution(Tgrasp,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
+                        if q is not None:
+                            values = self.robot.GetDOFValues()
+                            values[self.manip.GetArmIndices()] = q
+                            goals.append((Tgrasp,pose,values))
+                        elif self.manip.FindIKSolution(Tgrasp,0) is None:
                             numfailures += 1
+        #
+        # with self.robot.GetEnv():
+        #     with self.robot.CreateRobotStateSaver():
+        #         while not success:
+        #             if (numfailures>10):
+        #                 break
+        #             poses,jointstate = samplerfn(N)
+        #             for pose in poses:
+        #                 q = None
+        #                 pose = self.snap_to_discrete(pose)
+        #
+        #                 self.robot.SetTransform(pose)
+        #                 self.robot.SetDOFValues(*jointstate)
+        #
+        #                 # validate that base is not in collision
+        #                 if not self.env.CheckCollision(self.robot):
+        #                     q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
+        #                     if q is not None:
+        #                         print "Found valid grasp."
+        #                         success = True
+        #                         break
+        #                     else:
+        #                         numfailures += 1
 
-        return q, pose
+        return goals
 
     def eval_grasp(self, grasp):
         """
@@ -234,8 +253,9 @@ class GraspPlanner(object):
 
         # Now plan the arm to the grasp configuration
         print 'Planning arm trajectory'
-        start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
-        arm_plan = self.arm_planner.Plan(start_config, grasp_config)
+        # start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
+        # arm_plan = self.arm_planner.Plan(start_config, grasp_config)
+        arm_plan = self.arm_plan
         arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(arm_plan)
 
         raw_input("Done planning.")

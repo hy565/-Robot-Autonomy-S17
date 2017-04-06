@@ -1,5 +1,6 @@
 import numpy as np
 from RRTTree import RRTTree
+import time
 
 class RRTPlanner(object):
 
@@ -12,8 +13,10 @@ class RRTPlanner(object):
         print("Running RRT planner")
         if(self.planning_env.RobotIsInCollisionAt(start_config)):
             print "Start config is in collision!"
+            return 0 
         if (self.planning_env.RobotIsInCollisionAt(goal_config)):
             print "Goal config is in collision!"
+            return 0
 
         tree = RRTTree(self.planning_env, start_config)
         plan = []
