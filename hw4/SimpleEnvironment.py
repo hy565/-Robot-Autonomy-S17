@@ -207,22 +207,22 @@ class SimpleEnvironment(object):
         # If checking collision in point other than current state, move robot
         #  to that point, check collision, then move it back.
         # point = self.discrete_env.NodeIdToConfiguration(point)
-        # with self.robot.GetEnv():
-        current_state = self.robot.GetTransform()
-        # print current_state
-        check_state = numpy.copy(current_state)
-        T = numpy.copy(current_state)
+        with self.robot.GetEnv():
+            current_state = self.robot.GetTransform()
+            # print current_state
+            check_state = numpy.copy(current_state)
+            T = numpy.copy(current_state)
 
-        T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
-        # print T[0:2]
-        # check_state[:2,3] = point[0:2]
-        T[:2,3] = point[0:2]
-        # T[0][3] = point[0]
-        # T[1][3] = point[1]
-        # print T
-        self.robot.SetTransform(T)
-        in_collision = self.robot.GetEnv().CheckCollision(self.robot)
-        self.robot.SetTransform(current_state)  # move robot back to current state
+            T = openravepy.matrixFromAxisAngle([0, 0, point[2]])
+            # print T[0:2]
+            # check_state[:2,3] = point[0:2]
+            T[:2,3] = point[0:2]
+            # T[0][3] = point[0]
+            # T[1][3] = point[1]
+            # print T
+            self.robot.SetTransform(T)
+            in_collision = self.robot.GetEnv().CheckCollision(self.robot)
+            self.robot.SetTransform(current_state)  # move robot back to current state
         return in_collision
 
 
