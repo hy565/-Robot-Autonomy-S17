@@ -252,10 +252,10 @@ class GraspPlanner(object):
         # Now plan the arm to the grasp configuration
         # print 'Planning arm trajectory'
         # start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
-        # arm_plan = self.arm_planner.Plan(start_config, grasp_config)
+        # arm_plan = self.arm_planner.Plan(start_config, g purasp_config)
         # arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(arm_plan)
         # raw_input("Done planning.")
-        
+
         print 'Executing arm trajectory'
         self.arm_planner.planning_env.robot.ExecuteTrajectory(arm_traj)
 

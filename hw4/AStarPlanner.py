@@ -53,7 +53,7 @@ class AStarPlanner(object):
                 # self.planning_env.PlotEdgeWithID(camefrom[current], current)
                 self.planning_env.PlotEdge(self.planning_env.discrete_env.NodeIdToConfiguration(camefrom[current]), self.planning_env.discrete_env.NodeIdToConfiguration(current))
 
-            
+
             if (np.all(self.planning_env.discrete_env.NodeIdToGridCoord(current)[0:2] == self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[0:2])):
                 self.a = True
                 print "Almost there!"
@@ -61,27 +61,18 @@ class AStarPlanner(object):
                 self.r = (self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[2] -  self.planning_env.discrete_env.NodeIdToGridCoord(current)[2])
                 print "Rotations left: ", self.r
                 break
-
-
                 self.actions[current] = action
-                # camefrom[neighbor] = current
-                # current = goal_id
-
-
 
             if (current == goal_id):
-            
                 break # reconstruct path and return
+
             closed_set[current] = True;
+            actions = self.planning_env.GetSuccessors(current)
+            curr_config = self.planning_env.discrete_env.NodeIdToConfiguration(current)
 
-            neighbors = self.planning_env.GetSuccessors(current)
-
-
-            for action in neighbors:
-                curr_config = self.planning_env.discrete_env.NodeIdToConfiguration(current)
-            	neighbor = action.footprint[-1] + curr_config
-
-                neighbor[2] = action.footprint[-1][2]
+            for action in actions:
+            	neighbor = action.footprint[-1][0:2] + curr_config[0:2]
+                neighbor = np.concatenate((neighbor, np.array([action.footprint[-1][2]])), axis=0)
             	neighbor = self.planning_env.discrete_env.ConfigurationToNodeId(neighbor)
 
                 if (neighbor in closed_set or neighbor in in_collision):
@@ -89,7 +80,6 @@ class AStarPlanner(object):
 
                 # Check if neighbor is in collision
                 if (neighbor not in in_collision):
-                    # import pdb; pdb.set_trace()
                     neighbor_config = self.planning_env.discrete_env.NodeIdToConfiguration(neighbor)
                     if (self.planning_env.RobotIsInCollisionAt(neighbor_config)):
                         in_collision[neighbor] = True
@@ -108,7 +98,7 @@ class AStarPlanner(object):
                     continue # This is not a better path
                 elif (dist2node < dists[neighbor]) and check:
                     # This is a better path. Update score in open_set
-                    open_set_index =  next(i for i, v in enumerate(open_set) if v[1] == neighbor)
+                    open_set_index = next(i for i, v in enumerate(open_set) if v[1] == neighbor)
                     open_set[open_set_index][0] = score
 
                 self.actions[neighbor] = action
@@ -123,8 +113,6 @@ class AStarPlanner(object):
             sys.exit()
 
         # Reconstruct path as list
-
-        # plan = [self.actions[goal_id]]    # If planning succeeded, current==goal
         plan = []
 
         for i in range(abs(self.r)):
@@ -137,16 +125,16 @@ class AStarPlanner(object):
         #     self.planning_env.PlotEdgeWithID(camefrom[goal_id], goal_id)
         plan_len = 0
         while (current != start_id):
-
             current = camefrom[current]
-            # if self.visualize:
-            #     self.planning_env.PlotEdgeWithID(camefrom[current], current)
-            # plan.append(self.planning_env.discrete_env.NodeIdToConfiguration(current))
             try:
                 plan.append(self.actions[current])
             except:
                 break
             plan_len += 1
+            # if self.visualize:
+            #     self.planning_env.PlotEdgeWithID(camefrom[current], current)
+            # plan.append(self.planning_env.discrete_env.NodeIdToConfiguration(current))
+
             # print plan_len
         # plan.append(start_config)
 

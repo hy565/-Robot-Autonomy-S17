@@ -21,20 +21,20 @@ if __name__ == "__main__":
     right_manip = robot.GetManipulator('right_wam')
     robot.SetActiveDOFs(right_manip.GetArmIndices())
     robot.SetActiveDOFValues(right_relaxed)
-        
+
     left_manip = robot.GetManipulator('left_wam')
     robot.SetActiveDOFs(left_manip.GetArmIndices())
     robot.SetActiveDOFValues(left_relaxed)
 
     robot.controller = openravepy.RaveCreateController(robot.GetEnv(), 'IdealController')
-     
+
     # add a table and move the robot into place
     table = env.ReadKinBodyXMLFile('models/objects/table.kinbody.xml')
     env.Add(table)
-    
-    table_pose = numpy.array([[ 0, 0, -1, 0.7], 
-                              [-1, 0,  0, 0], 
-                              [ 0, 1,  0, 0], 
+
+    table_pose = numpy.array([[ 0, 0, -1, 0.7],
+                              [-1, 0,  0, 0],
+                              [ 0, 1,  0, 0],
                               [ 0, 0,  0, 1]])
     table.SetTransform(table_pose)
 
@@ -50,9 +50,9 @@ if __name__ == "__main__":
     tstart = robot.GetTransform()
     hstart = openravepy.misc.DrawAxes(env, tstart)
     hstart.SetShow(True)
-    
 
-    raw_input('Move robot to goal config and press enter')
+
+    # raw_input('Move robot to goal config and press enter')
     gid = base_env.discrete_env.ConfigurationToNodeId(herb_base.GetCurrentConfiguration())
     # goal_config = base_env.discrete_env.NodeIdToConfiguration(gid)
     goal_config = numpy.array([3.0, 0.0, 0.0])
@@ -64,25 +64,15 @@ if __name__ == "__main__":
 
     herb_base.SetCurrentConfiguration(start_config)
 
-    import IPython
-    IPython.embed()
+    # import IPython
+    # IPython.embed()
 
-    # planner = AStarPlanner(base_env, visualize=True)
-    
-    # plan = planner.Plan(start_config, goal_config)
-    # traj = herb_base.ConvertPlanToTrajectory(plan)
+    planner = AStarPlanner(base_env, visualize=True)
 
+    plan = planner.Plan(start_config, goal_config)
+    traj = herb_base.ConvertPlanToTrajectory(plan)
 
-    
+    raw_input('Press any key to play trajectory')
+    herb_base.ExecuteTrajectory(traj)
 
-    # raw_input('Press any key to play trajectory')
-    # herb_base.ExecuteTrajectory(traj)
-
-
-    
-    
     # raw_input('Press any key to quit.')
-
-    
-    
-    

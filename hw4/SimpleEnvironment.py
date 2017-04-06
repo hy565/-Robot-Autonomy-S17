@@ -64,7 +64,6 @@ class SimpleEnvironment(object):
 
         # Add one more config that snaps the last point in the footprint to the center of the cell
         nid = self.discrete_env.ConfigurationToNodeId(config)
-        # print config
         snapped_config = self.discrete_env.NodeIdToConfiguration(nid)
         snapped_config[:2] -= start_config[:2]
         footprint.append(snapped_config)
@@ -117,12 +116,12 @@ class SimpleEnvironment(object):
             #Move Forward from current configuration/pose:
             #Diagonal Step:
             if not (idx % 2 == 0):
-                print 'Diagonal bud'
+                # print 'Diagonal bud'
                 ControlF = Control(1,1,numpy.sqrt(2)*0.4)
                 FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
                 ActionF =  Action(ControlF, FootprintF)
             else:
-                print 'Straight ahead'
+                # print 'Straight ahead'
                 ControlF =  Control(1,1, 0.4)  #ul,ur,time
                 FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
                 ActionF =  Action(ControlF, FootprintF)
@@ -143,18 +142,11 @@ class SimpleEnvironment(object):
 
         successors = []
 
-        # TODO: Here you will implement a function that looks
-        #  up the configuration associated with the particular node_id
-        #  and return a list of node_ids and controls that represent the neighboring
-        #  nodes
-        #candidates = []
-
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
         current_orientation = current_grid[2]#Get the current orientation
         current_config = self.discrete_env.NodeIdToConfiguration(node_id)
 
-        print "Now Expanding: ", current_grid, current_config
-
+        # print "Now Expanding: ", current_grid, current_config
 
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
@@ -163,7 +155,6 @@ class SimpleEnvironment(object):
                 # print footprint
                 test_config = copy.deepcopy(current_config)
                 test_config += footprint
-
 
                 if test_config[2] > numpy.pi:
                     test_config[2] -= 2.*numpy.pi
@@ -180,20 +171,20 @@ class SimpleEnvironment(object):
                 # print numpy.array(self.discrete_env.num_cells)
                 if (numpy.any(test_coord[0:2] < numpy.array([0]*2))) or (numpy.any(test_coord[0:2] >=  numpy.array(self.discrete_env.num_cells[0:2]))):
                     print test_coord
-                    print "successor footprint out of bounds"
+                    # print "successor footprint out of bounds"
                     collision =  True
                     break
 
                 if self.RobotIsInCollisionAt(test_config):
                     collision =  True #Set collision flag
-                    print "succesor action in collision"
+                    # print "succesor action in collision"
                     break
-            
+
             if not collision:
                 # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
-                print test_coord, test_config,
-                print "has been added to succesors"
-                
+                # print test_coord, test_config,
+                # print "has been added to succesors"
+
                 # action.footprint[-1] = test_config
 
                 successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
@@ -209,33 +200,16 @@ class SimpleEnvironment(object):
 
 
     def ComputeDistance(self, start_id, end_id):
-
-        dist = 0
-
-        # TODO: Here you will implement a function that
-        # computes the distance between the configurations given
-        # by the two node ids
-        # print start_id, end_id
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
-        start_config_coordinates = numpy.array(copy.deepcopy(start_config))     #do we ignore distance in the orientation space here?
-        end_config_coordinates = numpy.array(copy.deepcopy(end_config))
-        dist = numpy.linalg.norm(start_config_coordinates - end_config_coordinates) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
+        dist = numpy.linalg.norm(start_config - end_config) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
 
-        cost = 0
-
-        # TODO: Here you will implement a function that
-        # computes the heuristic cost between the configurations
-        # given by the two node ids
-
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
-        start_config_coordinates = numpy.array(copy.deepcopy(start_config))
-        goal_config_coordinates = numpy.array(copy.deepcopy(goal_config))
-        cost = numpy.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        cost = numpy.linalg.norm(start_config[0:2] - goal_config[0:2]) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
         #The robot should move towards the goal position, then adjust its orientation
         return cost
 
