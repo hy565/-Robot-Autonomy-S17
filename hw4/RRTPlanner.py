@@ -1,6 +1,5 @@
 import numpy as np
 from RRTTree import RRTTree
-import time
 
 class RRTPlanner(object):
 

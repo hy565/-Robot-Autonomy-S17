@@ -50,6 +50,7 @@ class AStarPlanner(object):
             num_exp = num_exp + 1
 
             if self.visualize:
+                # self.planning_env.PlotEdgeWithID(camefrom[current], current)
                 self.planning_env.PlotEdge(self.planning_env.discrete_env.NodeIdToConfiguration(camefrom[current]), self.planning_env.discrete_env.NodeIdToConfiguration(current))
 
             if (current == goal_id):
@@ -58,8 +59,10 @@ class AStarPlanner(object):
 
             neighbors = self.planning_env.GetSuccessors(current)
 
+
             for action in neighbors:
-            	neighbor = action.footprint[-1]
+            	neighbor = action.footprint[-1] + self.planning_env.discrete_env.NodeIdToConfiguration(current)
+
             	neighbor = self.planning_env.discrete_env.ConfigurationToNodeId(neighbor)
 
                 if (neighbor in closed_set or neighbor in in_collision):
@@ -95,7 +98,9 @@ class AStarPlanner(object):
 
         #If open_set ran out before reaching goal
         if (current!=goal_id):
-            print "------\nPlanning failed. Couldn't find a valid path.\n------"
+            print "Planning failed. Couldn't find a valid path."
+            import IPython
+            IPython.embed()
             sys.exit()
 
         # Reconstruct path as list

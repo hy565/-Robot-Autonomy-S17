@@ -56,8 +56,7 @@ class HerbEnvironment(object):
         #Start configuration to waypoint 1; check for collision, repeat for waypoint 2, 3 and so on till collision occurs/end_config is reached
         for ms in range (1, waypoints):
             # Make sure it we don't extend too far
-            epsilon = 0.2
-
+            epsilon = 2.0
             if (self.ComputeDistance(start_config, last_successful_config)>epsilon):
                 return last_successful_config
 
@@ -84,11 +83,7 @@ class HerbEnvironment(object):
         if point is None:
             in_collision = self.robot.robot.GetEnv().CheckCollision(self.robot.robot)
             self_collision = self.robot.robot.CheckSelfCollision()
-            if (in_collision):
-                # print "Collision"
-                return True
-            elif (self_collision):
-                # print "Self collision"
+            if (in_collision or self_collision):
                 return True
             else:
                 return False
@@ -101,8 +96,7 @@ class HerbEnvironment(object):
         #  to that point, check collision, then move it back.
         current_state = self.robot.robot.GetDOFValues()
         check_state = numpy.copy(current_state)
-        dof = self.robot.robot.GetActiveDOFIndices()
-        check_state[dof] = point
+        check_state[0:7] = point
 
         self.robot.robot.SetDOFValues(check_state, range(len(current_state)), openravepy.KinBody.CheckLimitsAction.Nothing)  # move robot to state to check
 
@@ -115,11 +109,7 @@ class HerbEnvironment(object):
 
         self.robot.robot.SetDOFValues(current_state, range(len(current_state)), openravepy.KinBody.CheckLimitsAction.Nothing)  # move robot back to current state
 
-        if (in_collision):
-            # print "collision"
-            return True
-        if (self_collision):
-            # print "self collision"
+        if (in_collision or self_collision):
             return True
 
         return False

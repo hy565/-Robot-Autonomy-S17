@@ -59,12 +59,6 @@ class SimpleEnvironment(object):
             footprint_config[:2] -= start_config[:2]
             footprint.append(footprint_config)
 
-            # pose = openravepy.matrixFromAxisAngle( numpy.array( [0,0,footprint_config[2]] ) )
-            # pose[0,3] = footprint_config[0]
-            # pose[1,3] = footprint_config[1]
-            # pose[2,3] = 0
-            # self.robot.SetTransform(pose)
-
             timecount += stepsize
 
         # Add one more config that snaps the last point in the footprint to the center of the cell
@@ -87,7 +81,7 @@ class SimpleEnvironment(object):
         # print actions
         for idx in range(int(self.discrete_env.num_cells[2])):
             for action in actions[idx]:
-                # print action.footprint[-1]
+                print action.footprint[-1]
                 xpoints = [config[0] for config in action.footprint]
                 ypoints = [config[1] for config in action.footprint]
 
@@ -122,23 +116,23 @@ class SimpleEnvironment(object):
             ##Construct action objects
 
             #Move Forward from current configuration/pose in the x-direction:
-            ControlF =  Control(1,1, 0.5)  #ul,ur,time
+            ControlF =  Control(1,1, 0.4)  #ul,ur,time
             FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
             ActionF =  Action(ControlF, FootprintF)
             #Move Backward from current configuration/pose in the x-direction:
-            # ControlB =  Control(-1,-1, 0.2)  #ul,ur,time
-            # FootprintB =  self.GenerateFootprintFromControl(curr_config, ControlB)
-            # ActionB =  Action(ControlB, FootprintB)
+            ControlB =  Control(-1,-1, 0.4)  #ul,ur,time
+            FootprintB =  self.GenerateFootprintFromControl(start_config, ControlB)
+            ActionB =  Action(ControlB, FootprintB)
             #Turn CW by pi/4:
-            ControlCW =  Control(1, -1, numpy.pi/4.)
+            ControlCW =  Control(1, -1, 0.4)
             FootprintCW =  self.GenerateFootprintFromControl(start_config, ControlCW)
             ActionCW =  Action(ControlCW, FootprintCW)
             #Turn CCW by pi/4:
-            ControlCCW =  Control(-1, 1, numpy.pi/4.)
+            ControlCCW =  Control(-1, 1, 0.4)
             FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
-            self.actions[idx] = [ActionF, ActionCW, ActionCCW]
+            self.actions[idx] = [ActionF, ActionCW, ActionCCW, ActionB]
 
 
 
@@ -154,44 +148,46 @@ class SimpleEnvironment(object):
 
         current_grid = self.discrete_env.NodeIdToGridCoord(node_id)#Convert node_id to grid coordinate
         current_orientation = current_grid[2]#Get the current orientation
-        print '-----'
-        print current_orientation
         current_config = self.discrete_env.NodeIdToConfiguration(node_id)
 
-        # import pdb; pdb.set_trace()
+        print "Now Expanding: ", current_grid, current_config
+
+
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
-            for i,footprint in enumerate(action.footprint):
-                if (i%50==0):
-                    print footprint
+            for footprint in action.footprint:
+            	# print current_config
+            	# print footprint
+            	test_config = copy.deepcopy(current_config)
+                test_config += footprint
 
-                test_config = current_config + footprint
-                test_config[2] = max(-numpy.pi, test_config[2])
-                test_config[2] = min(numpy.pi, test_config[2])
+                test_config[2] = self.wraptopi(test_config[2])
+                # test_config[2] = max(-numpy.pi, test_config[2])
+                # test_config[2] = min(numpy.pi, test_config[2])
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
-
+                # print "Candidate successor: ", test_coord,
 
                 # print numpy.array([0]*self.discrete_env.dimension)
                 # print numpy.array(self.discrete_env.num_cells)
                 if (numpy.any(test_coord[0:2] < numpy.array([0]*2))) or (numpy.any(test_coord[0:2] >=  numpy.array(self.discrete_env.num_cells[0:2]))):
-                    # print "successor footprint out of bounds"
+                    print test_coord
+                    print "successor footprint out of bounds"
                     collision =  True
-                    continue
+                    break
 
                 if self.RobotIsInCollisionAt(test_config):
                     collision =  True #Set collision flag
-                    # print "succesor action in collision"
-                    continue
-
+                    print "succesor action in collision"
+                    break
+            
             if not collision:
                 # successors.append([action.footprint[-1], action.control]) #Append the 'snapped' footprint and its control
-                # print current_config, '\n', footprint, '\n', test_config
-                # print "-----"
-                # print test_coord, test_config
-                action.footprint[-1] = test_config
+                print test_coord, test_config,
+                print "has been added to succesors"
+                
+                # action.footprint[-1] = test_config
 
-                successors.append(action)
-                #Last footprint corresponds to node id and controls are embedded in the action
+                successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
         # neighbor_gen = list((itertools.product([-1,0,1], repeat=self.discrete_env.dimension)))
         # neighbor_gen.remove(tuple([0]*self.discrete_env.dimension))
         # candidates = [numpy.array(current_grid) + n for n in numpy.array(neighbor_gen)]
@@ -213,8 +209,8 @@ class SimpleEnvironment(object):
         # print start_id, end_id
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
-        start_config_coordinates = numpy.array(copy.deepcopy(start_config[0:2]))     #do we ignore distance in the orientation space here?
-        end_config_coordinates = numpy.array(copy.deepcopy(end_config[0:2]))
+        start_config_coordinates = numpy.array(copy.deepcopy(start_config))     #do we ignore distance in the orientation space here?
+        end_config_coordinates = numpy.array(copy.deepcopy(end_config))
         dist = numpy.linalg.norm(start_config_coordinates - end_config_coordinates) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
         return dist
 
@@ -228,8 +224,8 @@ class SimpleEnvironment(object):
 
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
-        start_config_coordinates = numpy.array(copy.deepcopy(start_config[0:2]))
-        goal_config_coordinates = numpy.array(copy.deepcopy(goal_config[0:2]))
+        start_config_coordinates = numpy.array(copy.deepcopy(start_config))
+        goal_config_coordinates = numpy.array(copy.deepcopy(goal_config))
         cost = numpy.linalg.norm(start_config_coordinates - goal_config_coordinates) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
         #The robot should move towards the goal position, then adjust its orientation
         return cost
@@ -310,3 +306,8 @@ class SimpleEnvironment(object):
 
             pl.draw()
             self.cnt = 0
+
+    def wraptopi(self, x):
+        pi = numpy.pi
+        x = x - numpy.floor(x/(2*pi)) *2 *pi
+        return x
