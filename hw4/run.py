@@ -10,6 +10,7 @@ from GraspPlanner import GraspPlanner
 import sys
 from AStarPlanner import AStarPlanner
 from RRTPlanner import RRTPlanner
+from RRTConnectPlanner import RRTConnectPlanner
 
 if __name__ == "__main__":
 
