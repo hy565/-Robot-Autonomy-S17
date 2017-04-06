@@ -56,19 +56,8 @@ class GraspPlanner(object):
             # Check if it works
             if arm_config is not None:
                 base_pose = pose
-
-                self.robot.SetTransform(base_pose)
-                x = raw_input("try")
-                if (x == 's'):
-                    print 'skipping'
-                    continue
-                start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
-                arm_plan = self.arm_planner.Plan(start_config, arm_config)
-                if arm_plan==0:
-                    continue
-                else:
-                    break
-
+                grasp_config = grasp_c
+                break
 
 
         self.base_config = base_pose
@@ -83,12 +72,12 @@ class GraspPlanner(object):
         # raw_input("Showing base pose and grasp config")
 
         # Convert base_pose to [x,y,theta] form
-        # T = self.robot.GetTransform()
-        # R = base_pose[0:3,0:3]
-        # axis_angle = openravepy.axisAngleFromRotationMatrix(R)
-        # yaw = axis_angle[2]
-        # base_pose = [base_pose[0,3], base_pose[1,3], yaw]
-        # print "Final pose: ", base_pose
+        T = self.robot.GetTransform()
+        R = base_pose[0:3,0:3]
+        axis_angle = openravepy.axisAngleFromRotationMatrix(R)
+        yaw = axis_angle[2]
+        base_pose = [base_pose[0,3], base_pose[1,3], yaw]
+        print "Final pose: ", base_pose
         # raw_input("Check grasp")
 
         return base_pose, arm_config
@@ -133,7 +122,6 @@ class GraspPlanner(object):
                     break
                 poses,jointstate = samplerfn(N)
                 for pose in poses:
-                    q = None
                     pose = self.snap_to_discrete(pose)
 
                     self.robot.SetTransform(pose)
@@ -144,11 +132,12 @@ class GraspPlanner(object):
                         q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
                         if q is not None:
                             print "Success! Found good grasp."
+                            self.robot.SetTransform(pose)
+                            pose =  self.robot.GetTransform()
+                            self.robot.SetTransform(original_base)
                             success = True
                         else:
                             numfailures += 1
-                    else:
-                        numfailures += 1
         return q, pose
 
     def eval_grasp(self, grasp):
