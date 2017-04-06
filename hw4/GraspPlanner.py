@@ -264,3 +264,6 @@ class GraspPlanner(object):
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)
         task_manipulation.CloseFingers()
         raw_input("Done. Hit enter to quit")
+
+        import IPython
+        IPython.embed()
