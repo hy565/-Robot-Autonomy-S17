@@ -42,6 +42,9 @@ class GraspPlanner(object):
         order = order[::-1]
         self.grasps_ordered = self.grasps_ordered[order]
 
+
+        original = self.robot.GetTransform()
+
         # Go through sorted graspset and find one that works
         for i, grasp in enumerate(self.grasps_ordered):
             print "Checking grasp #", i, "/", len(self.grasps_ordered)
@@ -56,25 +59,22 @@ class GraspPlanner(object):
             # Check if it works
             if arm_config is not None:
                 base_pose = pose
+                # self.robot.SetTransform(base_pose)
+                # start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
+                # arm_plan = self.arm_planner.Plan(start_config, arm_config)
+                # if arm_plan==0:
+                #     continue
+                # else:
+                #     self.arm_plan = arm_plan
+                #     break
+                # with self.robot.GetEnv():
+                    # with self.robot.CreateRobotStateSaver():
 
-                self.robot.SetTransform(base_pose)
-                x = raw_input("try")
-                if (x == 's'):
-                    print 'skipping'
-                    continue
-                start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
-                arm_plan = self.arm_planner.Plan(start_config, arm_config)
-                if arm_plan==0:
-                    continue
-                else:
-                    break
-
-
-
-        self.base_config = base_pose
         ###################################################################
+        self.base_config = base_pose
 
-        #Uncomment to show grasp
+
+        # #Uncomment to show grasp
         # self.robot.SetTransform(base_pose)
         # cur = self.robot.GetDOFValues()
         # original = cur
@@ -83,12 +83,15 @@ class GraspPlanner(object):
         # raw_input("Showing base pose and grasp config")
 
         # Convert base_pose to [x,y,theta] form
-        # T = self.robot.GetTransform()
-        # R = base_pose[0:3,0:3]
-        # axis_angle = openravepy.axisAngleFromRotationMatrix(R)
-        # yaw = axis_angle[2]
-        # base_pose = [base_pose[0,3], base_pose[1,3], yaw]
-        # print "Final pose: ", base_pose
+        self.robot.SetTransform(base_pose)
+        T = self.robot.GetTransform()
+        self.robot.SetTransform(original)
+
+        R = T[0:3,0:3]
+        axis_angle = openravepy.axisAngleFromRotationMatrix(R)
+        yaw = axis_angle[2]
+        base_pose = [T[0,3], T[1,3], yaw]
+        print "Final pose: ", base_pose
         # raw_input("Check grasp")
 
         return base_pose, arm_config
@@ -98,57 +101,73 @@ class GraspPlanner(object):
         Snaps a given base pose to a discrete grid of 0.1, 0.1, pi/4 resolution
         Input will be in [x,y,z, q1, q2, q3, q4] form
         """
+        with self.robot.GetEnv():
+            with self.robot.CreateRobotStateSaver():
+                original = self.robot.GetTransform()
 
-        T = self.robot.GetTransform()
-        R = T[0:3,0:3]
+                self.robot.SetTransform(pose)
+                T = self.robot.GetTransform()
+                R = T[0:3,0:3]
 
-        # import IPython
-        # IPython.embed()
+                # Convert quat to yaw
+                axis_angle = openravepy.axisAngleFromRotationMatrix(R)
+                yaw = axis_angle[2]
 
-        # Convert quat to yaw
-        axis_angle = openravepy.axisAngleFromRotationMatrix(R)
-        yaw = axis_angle[2]
+                # Feed to discrete_env: [x,y,theta]
+                pose_3 = [pose[0], pose[1], yaw]
+                grid_coord = self.discrete_env.ConfigurationToGridCoord(pose_3)
+                discrete_pose = self.discrete_env.GridCoordToConfiguration(grid_coord)
 
-        # Feed to discrete_env: [x,y,theta]
-        pose_3 = [pose[0], pose[1], yaw]
-        grid_coord = self.discrete_env.ConfigurationToGridCoord(pose_3)
-        discrete_pose = self.discrete_env.GridCoordToConfiguration(grid_coord)
+                # Change back to original form with quat
+                snapped_pose = openravepy.matrixFromAxisAngle( np.array( [0,0,discrete_pose[2]] ) )
+                snapped_pose[0,3] = pose[0]
+                snapped_pose[1,3] = pose[1]
+                snapped_pose[2,3] = pose[2]
 
-        # Change back to original form with quat
-        snapped_pose = openravepy.matrixFromAxisAngle( np.array( [0,0,discrete_pose[2]] ) )
-        snapped_pose[0,3] = pose[0]
-        snapped_pose[1,3] = pose[1]
-        snapped_pose[2,3] = pose[2]
+                self.robot.SetTransform(original)
 
         return snapped_pose
 
     def test_grasp(self,grasp_config,densityfn,samplerfn,bounds):
         success = False
         numfailures = 0
-        N = 1
+        N = 3
         original_base = self.robot.GetTransform()
         with self.robot.GetEnv():
-            while not success:
-                if (numfailures>3):
-                    break
-                poses,jointstate = samplerfn(N)
-                for pose in poses:
-                    q = None
-                    pose = self.snap_to_discrete(pose)
+            with self.robot.CreateRobotStateSaver():
+                while not success:
+                    if (numfailures>5):
+                        break
+                    poses,jointstate = samplerfn(N)
+                    for pose in poses:
+                        q = None
+                        pose = self.snap_to_discrete(pose)
 
-                    self.robot.SetTransform(pose)
-                    self.robot.SetDOFValues(*jointstate)
+                        self.robot.SetTransform(pose)
+                        self.robot.SetDOFValues(*jointstate)
 
-                    # validate that base is not in collision
-                    if not self.env.CheckCollision(self.robot):
-                        q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
-                        if q is not None:
-                            print "Success! Found good grasp."
-                            success = True
+                        # validate that base is not in collision
+                        if not self.env.CheckCollision(self.robot):
+                            q = self.manip.FindIKSolution(grasp_config,filteroptions=openravepy.IkFilterOptions.CheckEnvCollisions)
+                            if q is not None:
+                                print "Found valid grasp."
+
+                                self.robot.SetTransform(pose)
+                                start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
+                                arm_plan = self.arm_planner.Plan(start_config, q)
+                                if arm_plan==0:
+                                    num_failures +=
+                                    continue
+                                else:
+                                    self.arm_plan = arm_plan
+                                    break
+                                success = True
+                                break
+                            else:
+                                numfailures += 1
                         else:
                             numfailures += 1
-                    else:
-                        numfailures += 1
+
         return q, pose
 
     def eval_grasp(self, grasp):
@@ -177,26 +196,11 @@ class GraspPlanner(object):
                 return 0.0
             # print('Rank of G is:', rankG)
 
-            METRIC = 2
-
-            if (METRIC==1):
-                # Metric 1: minimum singular value
-                U, s, V = np.linalg.svd(G, full_matrices=True)
-                # S = np.diag(s)
-                score = s[-1] # sigma_min
-            elif (METRIC==2):
-                # Metric 2: Isotropy
-                U, s, V = np.linalg.svd(G, full_matrices=True)
-                score = s[-1]/s[0]
-            elif (METRIC==3):
-                # Metric 3: Volume of grasp map
-                score =  np.sqrt(np.linalg.det(np.dot(G,np.transpose(G))))
-                if (math.isnan(score)):
-                    print("We'll set this value to zero.")
-                    score = 0.0
-            else:
-                print("Please choose metric.")
-                return
+            # Metric 3: Volume of grasp map
+            score =  np.sqrt(np.linalg.det(np.dot(G,np.transpose(G))))
+            if (math.isnan(score)):
+                print("We'll set this value to zero.")
+                score = 0.0
             return score
 
           except openravepy.planning_error,e:
@@ -234,9 +238,11 @@ class GraspPlanner(object):
         arm_plan = self.arm_planner.Plan(start_config, grasp_config)
         arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(arm_plan)
 
+        raw_input("Done planning.")
         print 'Executing arm trajectory'
         self.arm_planner.planning_env.robot.ExecuteTrajectory(arm_traj)
 
         # Grasp the bottle
+        print 'Grasping bottle'
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)
         task_manipulation.CloseFingers()

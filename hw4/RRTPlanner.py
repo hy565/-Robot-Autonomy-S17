@@ -10,6 +10,7 @@ class RRTPlanner(object):
 
 
     def Plan(self, start_config, goal_config, epsilon = .2): #.001
+        print("Running RRT planner")
         if(self.planning_env.RobotIsInCollisionAt(start_config)):
             print "Start config is in collision!"
         if (self.planning_env.RobotIsInCollisionAt(goal_config)):
@@ -23,34 +24,35 @@ class RRTPlanner(object):
         endFlag = False
         start_time = time.clock()
         while endFlag is False:
-            # with self.planning_env.robot.robot.GetEnv():
+            with self.planning_env.robot.robot.GetEnv():
+                with self.planning_env.robot.robot.CreateRobotStateSaver():
+                    if np.random.rand() <= .2:
+                        config = goal_config
+                    else:
+                        config = self.planning_env.GenerateRandomConfiguration()
 
-            if np.random.rand() <= .2:
-                config = goal_config
-            else:
-                config = self.planning_env.GenerateRandomConfiguration()
+                    vid, vertex = tree.GetNearestVertex(config)
 
-            vid, vertex = tree.GetNearestVertex(config)
+                    successConfig = self.planning_env.Extend(vertex, config)
+                    #raw_input("")
+                    if not np.array_equal(vertex,successConfig):
+                        if self.planning_env.RobotIsInCollisionOnLine(vertex,successConfig) is False:
+                            tree.AddVertex(successConfig)
+                            tree.AddEdge(vid,len(tree.vertices)-1)
 
-            successConfig = self.planning_env.Extend(vertex, config)
-            #raw_input("")
-            if not np.array_equal(vertex,successConfig):
-                if self.planning_env.RobotIsInCollisionOnLine(vertex,successConfig) is False:
-                    tree.AddVertex(successConfig)
-                    tree.AddEdge(vid,len(tree.vertices)-1)
+                    #if within a certain distance of goal & path to goal is collision free, end path searching
+                    if (self.planning_env.ComputeDistance(successConfig,goal_config) <= epsilon) and (self.planning_env.RobotIsInCollisionOnLine(successConfig,goal_config) is False):
+                        if self.planning_env.RobotIsInCollisionOnLine(vertex,successConfig) is False:
+                            tree.AddEdge(len(tree.vertices)-1,len(tree.vertices))
+                            tree.AddVertex(goal_config)
+                            endFlag = True
+                            print ("Found path")
 
-            #if within a certain distance of goal & path to goal is collision free, end path searching
-            if (self.planning_env.ComputeDistance(successConfig,goal_config) <= epsilon) and (self.planning_env.RobotIsInCollisionOnLine(successConfig,goal_config) is False):
-                if self.planning_env.RobotIsInCollisionOnLine(vertex,successConfig) is False:
-                    tree.AddEdge(len(tree.vertices)-1,len(tree.vertices))
-                    tree.AddVertex(goal_config)
-                    endFlag = True
-                    print ("Found path")
-
-            timeout = 30
-            if (time.clock()-start_time) > timeout:
-                print "RRT timed out"
-                return 0
+                    timeout = 60
+                    # print time.clock()-start_time
+                    if (time.clock()-start_time) > timeout:
+                        print "RRT timed out"
+                        return 0
 
         plan.append(goal_config)
         idx = tree.edges[max(tree.edges)] #this is the parent of goal
