@@ -32,6 +32,8 @@ class GraspPlanner(object):
         self.graspindices = self.gmodel.graspindices
         self.grasps = self.gmodel.grasps
 
+        self.original_pose = self.robot.GetTransform()
+
         base_pose = None
         grasp_config = None
 
@@ -65,6 +67,7 @@ class GraspPlanner(object):
                 #     with self.robot.CreateRobotStateSaver():
                 Tgrasp,pose,values = goal
 
+                self.robot.SetTransform(pose)
                 arm_config = values[self.robot.GetActiveDOFIndices()]
                 start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
                 arm_plan = self.arm_planner.Plan(start_config, arm_config)
@@ -72,18 +75,14 @@ class GraspPlanner(object):
                     continue
                 else:
                     print "RRT found path."
+
                     self.arm_plan = arm_plan
                     success = True
                     base_pose = pose
                     arm_config = arm_config
                     break
 
-    #
-    # raw_input('press ENTER to show goal %d'%ind)
-    # Tgrasp,pose,values = goal
-    # self.robot.SetTransform(pose)
-    # self.robot.SetDOFValues(values)
-        self.base_config = base_pose
+        self.base_config = base_pose # For skipping base pose planning
 
         # #Uncomment to show grasp
         # self.robot.SetTransform(base_pose)
@@ -94,17 +93,15 @@ class GraspPlanner(object):
         # raw_input("Showing base pose and grasp config")
 
         # Convert base_pose to [x,y,theta] form
-        original = self.robot.GetTransform()
         self.robot.SetTransform(base_pose)
         T = self.robot.GetTransform()
-        self.robot.SetTransform(original)
+        self.robot.SetTransform(original_pose)
 
         R = T[0:3,0:3]
         axis_angle = openravepy.axisAngleFromRotationMatrix(R)
         yaw = axis_angle[2]
         base_pose = [T[0,3], T[1,3], yaw]
         print "Final pose: ", base_pose
-        # raw_input("Check grasp")
 
         return base_pose, arm_config
 
@@ -240,7 +237,7 @@ class GraspPlanner(object):
 
         raw_input("enter to continue")
         self.robot.SetTransform(self.base_config)
-        raw_input("Skipping base planning")
+        raw_input("Skipping base planning") # Because RRT already found plan in GetBasePoseForObjectGrasp
 
         # Now plan to the base pose
         # print 'Planning base trajectory'
@@ -266,3 +263,4 @@ class GraspPlanner(object):
         print 'Grasping bottle'
         task_manipulation = openravepy.interfaces.TaskManipulation(self.robot)
         task_manipulation.CloseFingers()
+        raw_input("Done. Hit enter to quit")

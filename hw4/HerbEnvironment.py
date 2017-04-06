@@ -88,7 +88,7 @@ class HerbEnvironment(object):
             else:
                 return False
 
-        # Test configureations for table collision and self collision
+        # Test configurations for table collision and self collision
         #goal_config = numpy.array([ 5.1, -1.90,  0.00,  2.20,  0.00,  0.00,  0.00 ])
         #goal_config = numpy.array([ 5.1,  1.5,  2.0,  2.20,  0.00,  0.00,  0.00 ])
 
@@ -103,10 +103,6 @@ class HerbEnvironment(object):
         in_collision = self.robot.robot.GetEnv().CheckCollision(self.robot.robot)
         self_collision = self.robot.robot.CheckSelfCollision()
 
-        # print check_state
-        # print in_collision, self_collision
-        # raw_input("stop")
-
         self.robot.robot.SetDOFValues(current_state, range(len(current_state)), openravepy.KinBody.CheckLimitsAction.Nothing)  # move robot back to current state
 
         if (in_collision or self_collision):
@@ -116,7 +112,7 @@ class HerbEnvironment(object):
 
     def RobotIsInCollisionOnLine(self, point1, point2):
         # Linear check
-        n_points = 10
+        n_points = 20
         increments = [float(i)/n_points for i in range(n_points+1)]
         for num in increments:
             check_at = point1 + num*(point2-point1)
