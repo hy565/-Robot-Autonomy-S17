@@ -3,6 +3,7 @@ import pylab as pl
 from DiscreteEnvironment import DiscreteEnvironment
 import itertools
 import copy
+
 class Control(object):
     def __init__(self, omega_left, omega_right, duration):
         self.ul = omega_left
@@ -91,8 +92,6 @@ class SimpleEnvironment(object):
         pl.ion()
         pl.show()
 
-
-
     def ConstructActions(self):
 
         # Actions is a dictionary that maps orientation of the robot to
@@ -115,24 +114,28 @@ class SimpleEnvironment(object):
             #Set of Actions:
             ##Construct action objects
 
-            #Move Forward from current configuration/pose in the x-direction:
-            ControlF =  Control(1,1, 0.4)  #ul,ur,time
-            FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
-            ActionF =  Action(ControlF, FootprintF)
-            #Move Backward from current configuration/pose in the x-direction:
-            ControlB =  Control(-1,-1, 0.4)  #ul,ur,time
-            FootprintB =  self.GenerateFootprintFromControl(start_config, ControlB)
-            ActionB =  Action(ControlB, FootprintB)
+            #Move Forward from current configuration/pose:
+            #Diagonal Step:
+            if not (idx % 2 == 0):
+                print 'Diagonal bud'
+                ControlF = Control(1,1,numpy.sqrt(2)*0.4)
+                FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
+                ActionF =  Action(ControlF, FootprintF)
+            else:
+                print 'Straight ahead'
+                ControlF =  Control(1,1, 0.4)  #ul,ur,time
+                FootprintF =  self.GenerateFootprintFromControl(start_config, ControlF)
+                ActionF =  Action(ControlF, FootprintF)
             #Turn CW by pi/4:
-            ControlCW =  Control(1, -1, 0.4)
+            ControlCW =  Control(1, -1, numpy.pi/4.)
             FootprintCW =  self.GenerateFootprintFromControl(start_config, ControlCW)
             ActionCW =  Action(ControlCW, FootprintCW)
             #Turn CCW by pi/4:
-            ControlCCW =  Control(-1, 1, 0.4)
+            ControlCCW =  Control(-1, 1, numpy.pi/4.)
             FootprintCCW =  self.GenerateFootprintFromControl(start_config, ControlCCW)
             ActionCCW =  Action(ControlCCW, FootprintCCW)
 
-            self.actions[idx] = [ActionF, ActionCW, ActionCCW, ActionB]
+            self.actions[idx] = [ActionF, ActionCW, ActionCCW]
 
 
 
@@ -156,9 +159,9 @@ class SimpleEnvironment(object):
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
             for footprint in action.footprint:
-            	# print current_config
-            	# print footprint
-            	test_config = copy.deepcopy(current_config)
+                # print current_config
+                # print footprint
+                test_config = copy.deepcopy(current_config)
                 test_config += footprint
 
                 test_config[2] = self.wraptopi(test_config[2])
