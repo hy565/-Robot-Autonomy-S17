@@ -95,7 +95,7 @@ class GraspPlanner(object):
         # Convert base_pose to [x,y,theta] form
         self.robot.SetTransform(base_pose)
         T = self.robot.GetTransform()
-        self.robot.SetTransform(original_pose)
+        self.robot.SetTransform(self.original_pose)
 
         R = T[0:3,0:3]
         axis_angle = openravepy.axisAngleFromRotationMatrix(R)
