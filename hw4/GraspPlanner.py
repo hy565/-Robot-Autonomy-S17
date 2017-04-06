@@ -237,7 +237,8 @@ class GraspPlanner(object):
 
         raw_input("enter to continue")
         self.robot.SetTransform(self.base_config)
-        raw_input("Skipping base planning") # Because RRT already found plan in GetBasePoseForObjectGrasp
+        raw_input("Skipping base planning and arm planning") # Because RRT already found plan in GetBasePoseForObjectGrasp
+        arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(self.arm_plan)
 
         # Now plan to the base pose
         # print 'Planning base trajectory'
@@ -249,13 +250,12 @@ class GraspPlanner(object):
         # self.base_planner.planning_env.herb.ExecuteTrajectory(base_traj)
 
         # Now plan the arm to the grasp configuration
-        print 'Planning arm trajectory'
+        # print 'Planning arm trajectory'
         # start_config = np.array(self.arm_planner.planning_env.robot.GetCurrentConfiguration())
         # arm_plan = self.arm_planner.Plan(start_config, grasp_config)
-        arm_plan = self.arm_plan
-        arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(arm_plan)
-
-        raw_input("Done planning.")
+        # arm_traj = self.arm_planner.planning_env.robot.ConvertPlanToTrajectory(arm_plan)
+        # raw_input("Done planning.")
+        
         print 'Executing arm trajectory'
         self.arm_planner.planning_env.robot.ExecuteTrajectory(arm_traj)
 
