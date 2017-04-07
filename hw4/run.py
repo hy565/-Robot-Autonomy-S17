@@ -73,8 +73,8 @@ if __name__ == "__main__":
     herb_base = SimpleRobot(env, robot)
     base_env = SimpleEnvironment(herb_base, resolution)
 
-    # base_planner = AStarPlanner(base_env, visualize = False)
-    base_planner = None
+    base_planner = AStarPlanner(base_env, visualize = False)
+    # base_planner = None
     arm_planner = RRTPlanner(arm_env, visualize=False)
     # TODO: Here initialize your arm planner
 
@@ -128,9 +128,11 @@ if __name__ == "__main__":
 
     print("\nDone loading environment.\n")
 
+
+  
     planner = GraspPlanner(herb.robot, base_planner, arm_planner)
 
     planner.PlanToGrasp(bottle)
 
-    # import IPython
-    # IPython.embed()
+    import IPython
+    IPython.embed()

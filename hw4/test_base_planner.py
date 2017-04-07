@@ -45,6 +45,7 @@ if __name__ == "__main__":
     raw_input('Move robot to start config and press enter')
     sid = base_env.discrete_env.ConfigurationToNodeId(herb_base.GetCurrentConfiguration())
     start_config = base_env.discrete_env.NodeIdToConfiguration(sid)
+    # start_config = numpy.array([-4,-4,0])
     herb_base.SetCurrentConfiguration(start_config)
 
     tstart = robot.GetTransform()
@@ -53,8 +54,8 @@ if __name__ == "__main__":
 
     # raw_input('Move robot to goal config and press enter')
     gid = base_env.discrete_env.ConfigurationToNodeId(herb_base.GetCurrentConfiguration())
-    # goal_config = base_env.discrete_env.NodeIdToConfiguration(gid)
-    goal_config = numpy.array([3.0, 0.0, 0.0])
+    goal_config = base_env.discrete_env.NodeIdToConfiguration(gid)
+    # goal_config = numpy.array([4.0, 0.0, 0.0])
     herb_base.SetCurrentConfiguration(goal_config)
 
     tgoal = robot.GetTransform()
@@ -62,9 +63,6 @@ if __name__ == "__main__":
     hgoal.SetShow(True)
 
     herb_base.SetCurrentConfiguration(start_config)
-
-    # import IPython
-    # IPython.embed()
 
     planner = AStarPlanner(base_env, visualize=True)
 
@@ -74,4 +72,7 @@ if __name__ == "__main__":
     raw_input('Press any key to play trajectory')
     herb_base.ExecuteTrajectory(traj)
 
+
+    import IPython
+    IPython.embed()
     # raw_input('Press any key to quit.')

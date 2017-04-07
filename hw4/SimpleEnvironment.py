@@ -158,13 +158,8 @@ class SimpleEnvironment(object):
         for action in self.actions[current_orientation]:
             collision = False    #Initialize collision flag as false
             for footprint in action.footprint:
-                test_config = copy.deepcopy(current_config)
-                test_config += footprint
-
-                if test_config[2] > numpy.pi:
-                    test_config[2] -= 2.*numpy.pi
-                if test_config[2] < -numpy.pi:
-                    test_config[2] += 2.*numpy.pi
+                test_config = numpy.array(current_config)
+                test_config[:2] += footprint[:2]
 
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
                 # print "Candidate successor: ", test_coord,
@@ -172,10 +167,16 @@ class SimpleEnvironment(object):
                 # print numpy.array([0]*self.discrete_env.dimension)
                 # print numpy.array(self.discrete_env.num_cells)
                 if (numpy.any(test_coord[0:2] < numpy.array([0]*2))) or (numpy.any(test_coord[0:2] >=  numpy.array(self.discrete_env.num_cells[0:2]))):
-                    print test_coord
+                    # print test_coord
+                    print "collision"
                     collision =  True
                     break
 
+                if (self.RobotIsInCollisionAt(test_config)):
+                    print "collision"
+                    collision = True
+                    break
+                    
             if not collision:
                 successors.append(action) #Last footprint corresponds to node id and controls are embedded in the action
 
@@ -187,13 +188,18 @@ class SimpleEnvironment(object):
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         end_config = self.discrete_env.NodeIdToConfiguration(end_id)
         dist = numpy.linalg.norm(start_config[0:2] - end_config[0:2]) #Returns an array of len = len(config) --- Euclidean distance, since the robot can turn
+        # if dist < 0.1:
+            # dist = 0
         return dist
 
     def ComputeHeuristicCost(self, start_id, goal_id):
         start_config = self.discrete_env.NodeIdToConfiguration(start_id)
         goal_config = self.discrete_env.NodeIdToConfiguration(goal_id)
         cost = numpy.linalg.norm(start_config[0:2] - goal_config[0:2]) #Returns an array of len = len(config) --- Distance and Heuristic must be of the same form, with some weights
+        # if cost < 0.01:
+            # cost += numpy.linalg.norm(start_config[2] - goal_config[2])*100
         #The robot should move towards the goal position, then adjust its orientation
+        print cost
         return cost
 
     def RobotIsInCollisionAt(self, point=None):
