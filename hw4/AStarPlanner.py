@@ -60,10 +60,12 @@ class AStarPlanner(object):
                 print self.planning_env.discrete_env.NodeIdToGridCoord(goal_id), self.planning_env.discrete_env.NodeIdToGridCoord(current)
                 self.r = (self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[2] -  self.planning_env.discrete_env.NodeIdToGridCoord(current)[2])
                 print "Rotations left: ", self.r
-                break
                 self.actions[current] = action
-
+                break
+                
             if (current == goal_id):
+                #camefrom[neighbor] = current
+                #dists[neighbor] = dist2node
                 break # reconstruct path and return
 
             closed_set[current] = True;
@@ -121,7 +123,7 @@ class AStarPlanner(object):
                 plan.append(self.planning_env.actions[0][2])
 
             else: # turn clockwise
-                plan,append(self.planning_env.actions[0][1])
+                plan.append(self.planning_env.actions[0][1])
         # if self.visualize:
         #     self.planning_env.PlotEdgeWithID(camefrom[goal_id], goal_id)
         plan_len = 0
@@ -137,8 +139,9 @@ class AStarPlanner(object):
             # plan.append(self.planning_env.discrete_env.NodeIdToConfiguration(current))
 
             # print plan_len
-        # plan.append(start_config)
-
+        #plan.append(self.actions[start_id])
+        #plan.append(self.actions[current])
+        #plan_len += 1
         plan.reverse()
         end_time = time.time()
 
@@ -155,5 +158,5 @@ class AStarPlanner(object):
 
         print 'Plan time: ', end_time - start_time
         print '# nodes expanded: ', num_exp
-
+        print np.asarray(plan).shape
         return plan

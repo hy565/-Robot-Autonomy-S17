@@ -159,12 +159,12 @@ class SimpleEnvironment(object):
             collision = False    #Initialize collision flag as false
             for footprint in action.footprint:
                 test_config = copy.deepcopy(current_config)
-                test_config += footprint
+                test_config[:2] += footprint[:2]
 
-                if test_config[2] > numpy.pi:
-                    test_config[2] -= 2.*numpy.pi
-                if test_config[2] < -numpy.pi:
-                    test_config[2] += 2.*numpy.pi
+                # if test_config[2] > numpy.pi:
+                #     test_config[2] -= 2.*numpy.pi
+                # if test_config[2] < -numpy.pi:
+                #     test_config[2] += 2.*numpy.pi
 
                 test_coord = self.discrete_env.ConfigurationToGridCoord(test_config)
                 # print "Candidate successor: ", test_coord,
