@@ -64,6 +64,7 @@ class AStarPlanner(object):
             node_config = self.planning_env.discrete_env.NodeIdToConfiguration(node)
             # idx = self.planning_env.discrete_env.NodeIdToGridCoord(node)[2]
             if self.visualize:
+<<<<<<< HEAD
                     self.planning_env.PlotEdge(last_node_config,node_config)
                     
                     # self.planning_env.PlotActionFootprints(idx)
@@ -119,3 +120,114 @@ class AStarPlanner(object):
         return None
 
 
+=======
+                # self.planning_env.PlotEdgeWithID(camefrom[current], current)
+                self.planning_env.PlotEdge(self.planning_env.discrete_env.NodeIdToConfiguration(camefrom[current]), self.planning_env.discrete_env.NodeIdToConfiguration(current))
+
+            if (np.all(self.planning_env.discrete_env.NodeIdToGridCoord(current)[0:2] == self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[0:2])):
+                self.a = True
+                print "Almost there!"
+                print self.planning_env.discrete_env.NodeIdToGridCoord(goal_id), self.planning_env.discrete_env.NodeIdToGridCoord(current)
+                self.r = (self.planning_env.discrete_env.NodeIdToGridCoord(goal_id)[2] -  self.planning_env.discrete_env.NodeIdToGridCoord(current)[2])
+                print "Rotations left: ", self.r
+                self.actions[current] = action
+                break
+                
+            if (current == goal_id):
+                #camefrom[neighbor] = current
+                #dists[neighbor] = dist2node
+                break # reconstruct path and return
+
+            closed_set[current] = True;
+            actions = self.planning_env.GetSuccessors(current)
+            curr_config = self.planning_env.discrete_env.NodeIdToConfiguration(current)
+
+            for action in actions:
+            	neighbor = action.footprint[-1][0:2] + curr_config[0:2]
+                neighbor = np.concatenate((neighbor, np.array([action.footprint[-1][2]])), axis=0)
+
+            	neighbor = self.planning_env.discrete_env.ConfigurationToNodeId(neighbor)
+
+                if (neighbor in closed_set or neighbor in in_collision):
+                    continue
+
+                # Check if neighbor is in collision
+                if (neighbor not in in_collision):
+                    neighbor_config = self.planning_env.discrete_env.NodeIdToConfiguration(neighbor)
+                    if (self.planning_env.RobotIsInCollisionAt(neighbor_config)):
+                        in_collision[neighbor] = True
+                        closed_set[neighbor] = True
+                        continue
+
+                dist2node = dists[current] + \
+                            self.planning_env.ComputeDistance(current,neighbor)
+                score =  5*self.planning_env.ComputeHeuristicCost(neighbor, goal_id) + dist2node
+
+                check = [item for item in open_set if item[1] == neighbor]
+                if neighbor not in closed_set.keys():
+                    heappush(open_set, [score, neighbor])
+                    closed_set[neighbor] = True
+                elif (dist2node >= dists[neighbor]):
+                    continue # This is not a better path
+                elif (dist2node < dists[neighbor]) and check:
+                    # This is a better path. Update score in open_set
+                    open_set_index = next(i for i, v in enumerate(open_set) if v[1] == neighbor)
+                    open_set[open_set_index][0] = score
+
+                self.actions[neighbor] = action
+                camefrom[neighbor] = current
+                dists[neighbor] = dist2node
+
+        #If open_set ran out before reaching goal
+        if (current!=goal_id) and not self.a:
+            print "Planning failed. Couldn't find a valid path."
+            import IPython
+            IPython.embed()
+            sys.exit()
+
+        # Reconstruct path as list
+        plan = []
+
+        for i in range(abs(self.r)):
+            if self.r < 0: #need to turn counter-clockwise
+                plan.append(self.planning_env.actions[0][2])
+
+            else: # turn clockwise
+                plan.append(self.planning_env.actions[0][1])
+        # if self.visualize:
+        #     self.planning_env.PlotEdgeWithID(camefrom[goal_id], goal_id)
+        plan_len = 0
+        while (current != start_id):
+            current = camefrom[current]
+            try:
+                plan.append(self.actions[current])
+            except:
+                break
+            plan_len += 1
+            # if self.visualize:
+            #     self.planning_env.PlotEdgeWithID(camefrom[current], current)
+            # plan.append(self.planning_env.discrete_env.NodeIdToConfiguration(current))
+
+            # print plan_len
+        #plan.append(self.actions[start_id])
+        #plan.append(self.actions[current])
+        #plan_len += 1
+        plan.reverse()
+        end_time = time.time()
+
+        # Convert plan to numpy array
+        #  of dimension k x n where k is the number of waypoints
+        #  and n is the dimension of the robots configuration space
+        # plan_array = np.array([plan[0]])
+        # for i in range(1,len(plan)):
+            # plan_array = np.concatenate((plan_array,np.array([plan[i]])), axis=0)
+
+        # Report statistics
+        print 'Final plan', plan
+        # print 'Path length: ', self.planning_env.ComputeDistancePath(plan)
+
+        print 'Plan time: ', end_time - start_time
+        print '# nodes expanded: ', num_exp
+        print np.asarray(plan).shape
+        return plan
+>>>>>>> 334fb1bec860564a525f1b1da0a8864405dee23a
